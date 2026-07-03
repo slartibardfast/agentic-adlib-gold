@@ -14,6 +14,7 @@ This project serves three personas, built by discussion with the operator:
 - [Quill](quill.md), a documentation agent that reads the manual and the program
   data and grounds its answers in the source.
 
-The primary persona (the one who must be satisfied and cannot be served by an
-interface built for another) is selected with the operator when planning begins,
-and it prioritises the milestones in `plan/`.
+The primary persona is **Casey** (`call/0004`): the one who must be satisfied and
+cannot be served by an interface built for another. Casey takes highest priority
+and prioritises the milestones in `plan/`; Piotr and Quill are planned as they
+enable Casey's goals.
