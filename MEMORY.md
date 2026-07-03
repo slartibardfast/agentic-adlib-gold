@@ -53,3 +53,16 @@ points back.
 - The driver source already carries its own architectural development plan (its
   CLAUDE.md, doc/wdm.txt, doc/sdk.txt); the host plan references it by pin rather
   than copying it.
+
+## 2026-07-04 — First sound-path target: 8-bit PCM test tone
+
+- call/0005: Casey's first sound path is 8-bit PCM, because the FM voice already
+  works. Acceptance is an 8-bit PCM test tone audible from the card on hardware.
+- Audit finding: the WaveCyclic miniport (algwave.cpp / algwave.h) already
+  implements the 8-bit PCM ISA-DMA path (allocates a DMA channel, sets MMA format to
+  8-bit with DMA enabled, writes PCM and GO on the run transition). It is not a stub.
+  So plan/0002 is bring-up and hardware verification, not new code.
+- Cut plan/0002 (bring up the 8-bit PCM test tone). It depends on a reproducible WDK
+  build lane that retires the repro-exempt (call/0002).
+- Still open, carried into plan/0002: which Windows 9x release and which card
+  revision (Gold 1000 or 2000) is the first test target.
