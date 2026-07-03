@@ -36,3 +36,20 @@ points back.
   planning the first milestone, and it prioritises the milestones in plan/.
 - plan/0001 is still the template example milestone; the first real,
   persona-serving milestone is the next planning step.
+
+## 2026-07-04 — Selected the primary persona and cut the first milestone
+
+- Casey is the primary persona (call/0004): the retro gamer on Windows 9x whom the
+  driver must satisfy, and who cannot be served by an interface built for Piotr or
+  Quill.
+- Cut plan/0001 (import the skeleton and plan the WDM design), replacing the
+  template example. It imports the adlib_gold skeleton (adapter plus four PortCls
+  miniports over the OPL3/MMA/SP2 chips, adapted from the Win2K DDK samples) and
+  frames the design plan toward audible sound on real 9x hardware.
+- The operator confirmed period hardware is available for testing.
+- Open design questions recorded for the operator in plan/0001: Casey's first
+  sound path (FM, wave, or MIDI); the reference for authentic-sound acceptance; the
+  first 9x release and card revision (Gold 1000 or 2000).
+- The driver source already carries its own architectural development plan (its
+  CLAUDE.md, doc/wdm.txt, doc/sdk.txt); the host plan references it by pin rather
+  than copying it.
