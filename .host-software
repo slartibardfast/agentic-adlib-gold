@@ -1,0 +1,12 @@
+# .host-software — the Where room recipe (STRUCTURE.md).
+#
+# One [software "<name>"] stanza per component: source URL, pinned SHA, and the
+# canonical branch. `host-lifecycle software --materialize` realises each as a bare
+# store plus worktrees under software/<name>/ (gitignored); the recorded pin is the
+# reproducibility anchor. `software --check` audits each worktree against its pin.
+
+[software "adlib_gold"]
+	url          = https://github.com/slartibardfast/adlib_gold.git
+	pin          = d898b8fe896e3334c482d29947ea2881e8de96f9
+	branch       = main
+	repro-exempt = call/0002
