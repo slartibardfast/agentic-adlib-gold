@@ -1,0 +1,58 @@
+name: mdBook
+
+# Publishes THIS host's own mdBook (its rooms, in lifecycle order) to this
+# repository's GitHub Pages. The adlib_gold driver keeps its own separate Pages at
+# https://slartibardfast.github.io/adlib_gold/ (call/0003); this host site links
+# out to it and never touches it. Enable Pages on this repo with source
+# "GitHub Actions" for the deploy step to land.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mdBook
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Install host-lifecycle (pinned, the canonical publisher)
+        run: cargo install --git https://github.com/connollydavid/host-lifecycle --rev 46d481cd755302fcd5eaa47ddbbda814b3016567 --root "$HOME/.local"
+      - name: Generate the book (lifecycle order; every room)
+        # `book` writes book.toml + mdBook/src; `--check` fails unless every room
+        # with source renders a page. It reads the committed .host-software, so it
+        # needs no materialized worktree (call/0005-safe).
+        run: |
+          host-lifecycle book .
+          host-lifecycle book --check .
+      - name: Build the site
+        run: mdbook build
+      - name: Upload the Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: mdBook/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

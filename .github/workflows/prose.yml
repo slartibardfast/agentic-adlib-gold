@@ -1,0 +1,24 @@
+name: Prose
+
+# The spine obeys the prose rule it publishes (plan/0038): authored markdown carries
+# zero prose tropes. `host-lifecycle prose .` is host-lint's `--docs` engine run
+# in-process; it scans this repo's own tracked markdown (submodule files are gitlinks,
+# not walked) and exits non-zero on any flag or warning.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  prose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Pinned to the same host-lifecycle the host gates on (v0.30.1), so the spine's
+      # verdict matches every adopter's verify-phase prose audit; v0.30.1 embeds the
+      # host-lint engine that honors the per-repo LEXICON in the prose lane (host-lifecycle#2).
+      - name: Install host-lifecycle (pinned)
+        run: cargo install --git https://github.com/connollydavid/host-lifecycle --rev 46d481cd755302fcd5eaa47ddbbda814b3016567 --root "$HOME/.local"
+      - name: Prose gate (zero tropes in authored docs)
+        run: "$HOME/.local/bin/host-lifecycle prose ."

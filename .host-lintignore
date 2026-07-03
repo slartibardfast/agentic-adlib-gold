@@ -1,0 +1,4 @@
+# Paths host-lint excludes from the naming and prose audits (CLAUDE.md, the record
+# layer). MEMORY.md is the agent's append-only working memory: it is history, and
+# it is never rewritten, so it is excluded rather than cleaned.
+MEMORY.md
