@@ -76,3 +76,17 @@ points back.
   plan/0001's open questions are all resolved.
 - Remaining blocker before a tone can play: the reproducible WDK build lane that
   retires the repro-exempt (call/0002). That is the next design step.
+
+## 2026-07-04 — Build-lane design: Windows CI and Linux/Wine
+
+- call/0007: build the driver from its one pin two ways, as per-platform builds in
+  .host-software. A Linux+Wine lane (attest-host linux) reproduces on Linux CI and the
+  WSL host; a Windows CI lane (attest-host windows) attests on the real target. When a
+  lane reproduces the pinned adlibgold.sys, repro-exempt (call/0002) is dropped for it.
+- Cut plan/0003 (establish the reproducible WDK build lane), which is plan/0002's
+  prerequisite. PLAN.md now orders 0001, 0003, 0002 by work order; the numbers stay
+  identity.
+- Needs from the operator before the lane is built: the DDK/WDK version that builds a
+  98SE WDM driver and where to obtain it (the Win2K DDK is the anchor), and whether the
+  Wine lane must be byte-identical or a successful Wine build with the Windows lane as
+  the reproducibility anchor is enough.
