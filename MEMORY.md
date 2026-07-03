@@ -25,3 +25,14 @@ points back.
 - The example personas (cast/mara.md, cast/wren.md) and the example milestone
   (plan/0001) are still the template placeholders. A real persona and first
   milestone need a discussion with the operator about who the driver serves.
+
+## 2026-07-04 — Folded in the real personas
+
+- Replaced the template example personas (mara, wren) with the project's own,
+  built by discussion with the operator: Casey (retro gamer on Windows 9x), Piotr
+  (driver developer on Windows 2000 and XP), and Quill (documentation agent
+  consuming the manual and the program data). cast/README.md names them.
+- The primary persona is not yet selected. It is chosen with the operator when
+  planning the first milestone, and it prioritises the milestones in plan/.
+- plan/0001 is still the template example milestone; the first real,
+  persona-serving milestone is the next planning step.
