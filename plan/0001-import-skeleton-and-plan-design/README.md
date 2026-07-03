@@ -69,16 +69,13 @@ as it is taken up.
 
 ## Open questions
 
-Resolved during planning:
+All resolved during planning:
 
 - Casey's first sound path is the 8-bit PCM path (`call/0005`); the FM voice already
   works.
 - Authentic-sound acceptance is an 8-bit PCM test tone (`call/0005`).
-
-Still open, taken up in plan/0002:
-
-- Which Windows 9x release and which card revision (Gold 1000 or 2000) is the first
-  test target?
+- The first test target is Windows 98SE through the WDM path, on a GoldLib recreation
+  of the Ad Lib Gold (`call/0006`).
 
 ## Specs
 

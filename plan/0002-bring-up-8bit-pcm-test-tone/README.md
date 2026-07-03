@@ -29,9 +29,10 @@ on a correct build and a working install over the hardware wiring the code assum
 ## Acceptance
 
 - The driver builds from the pin and installs from `adlibgold.inf` on the test
-  machine.
+  machine (Windows 98SE).
 - The card enumerates its wave render endpoint.
-- An 8-bit PCM test tone played to that endpoint is audible from the card.
+- An 8-bit PCM test tone played to that endpoint is audible from the GoldLib
+  recreation.
 
 These become behavioural (`.allium`) specs in the software repository, where the lane
 runs; this milestone references them by pin.
@@ -41,7 +42,8 @@ runs; this milestone references them by pin.
 - A reproducible WDK build lane that retires the `repro-exempt` (`call/0002`), so the
   build Piotr installs is the pinned one.
 
-## Open question
+## Test target
 
-- Which Windows 9x release and which card revision (Gold 1000 or 2000) is the first
-  test target? (Carried from plan/0001.)
+The first target is Windows 98 Second Edition through the WDM path, on a GoldLib
+recreation of the Ad Lib Gold (`call/0006`). Windows 2000 and XP, and any later card,
+follow this one.
