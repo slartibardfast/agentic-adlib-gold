@@ -5,4 +5,5 @@ their folders are named `NNNN-slug` (zero-padded, and the number is identity, no
 sort key; see `call/0000`). A milestone is a thin, persona-serving increment.
 
 - [0001 import the skeleton and plan the WDM design](0001-import-skeleton-and-plan-design/README.md)
+- [0003 establish the reproducible WDK build lane](0003-reproducible-wdk-build-lane/README.md)
 - [0002 bring up the 8-bit PCM test tone](0002-bring-up-8bit-pcm-test-tone/README.md)

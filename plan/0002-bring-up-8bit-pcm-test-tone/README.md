@@ -39,8 +39,8 @@ runs; this milestone references them by pin.
 
 ## Depends on
 
-- A reproducible WDK build lane that retires the `repro-exempt` (`call/0002`), so the
-  build Piotr installs is the pinned one.
+- plan/0003, the reproducible WDK build lane that retires the `repro-exempt`
+  (`call/0002`), so the build Piotr installs is the pinned one.
 
 ## Test target
 
