@@ -1,0 +1,11 @@
+[receipt "adopt"]
+    disposition = done
+    evidence = host-template@565410a adopted; .host stamp written; spine copied verbatim
+    tool = host-lifecycle@0.35.1
+    recorded = 2026-07-03
+
+[receipt "upgrade"]
+    disposition = done
+    evidence = baseline at 565410a; upgrade lists 0 pending, 0 applied out of order
+    tool = host-lifecycle@0.35.1
+    recorded = 2026-07-03

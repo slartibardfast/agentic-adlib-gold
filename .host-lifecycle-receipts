@@ -1,0 +1,35 @@
+[receipt "classify"]
+    disposition = done
+    evidence = case a: no prior CLAUDE.md; draft rename map empty (only LICENSE tracked)
+    tool = host-lifecycle@0.35.1
+    recorded = 2026-07-03
+
+[receipt "embed" "adlib_gold"]
+    disposition = done
+    evidence = adlib_gold@d898b8fe896e materialized at software/adlib_gold/main; pinned in .host-software
+    tool = host-lifecycle@0.35.1
+    recorded = 2026-07-03
+
+[receipt "remap"]
+    disposition = skip
+    reason = no ordinal-named files to rename; host-lint --all clean, so no .host-remap dictionary is needed
+    tool = host-lifecycle@0.35.1
+    recorded = 2026-07-03
+
+[receipt "publish"]
+    disposition = done
+    evidence = host mdBook generated, 15 pages, every room renders; .github/workflows/mdbook.yml wired
+    tool = host-lifecycle@0.35.1
+    recorded = 2026-07-03
+
+[receipt "release" "adlib_gold"]
+    disposition = skip
+    reason = no release performed this session; adlib_gold is repro-exempt (call/0002) and built off-host with the Windows WDK
+    tool = host-lifecycle@0.35.1
+    recorded = 2026-07-03
+
+[receipt "verify"]
+    disposition = done
+    evidence = gate sweep green: validate plan/ call/ ok, host-lint --all + prose + reconcile clean, book --check renders every room, mdbook build ok, commit-msg hook blocks a tell
+    tool = host-lifecycle@0.35.1
+    recorded = 2026-07-03
