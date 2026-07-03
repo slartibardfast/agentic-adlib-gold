@@ -66,3 +66,13 @@ points back.
   build lane that retires the repro-exempt (call/0002).
 - Still open, carried into plan/0002: which Windows 9x release and which card
   revision (Gold 1000 or 2000) is the first test target.
+
+## 2026-07-04 — First test target: Windows 98SE WDM on GoldLib
+
+- call/0006: the first target is Windows 98SE (WDM / portcls) on a GoldLib recreation
+  of the Ad Lib Gold. The Gold 2000 never shipped in the wild, so it is out of scope;
+  the Gold 1000 is the real-card lineage the recreation follows.
+- plan/0002 acceptance now names the test machine (98SE plus the GoldLib recreation);
+  plan/0001's open questions are all resolved.
+- Remaining blocker before a tone can play: the reproducible WDK build lane that
+  retires the repro-exempt (call/0002). That is the next design step.
