@@ -67,11 +67,16 @@ as it is taken up.
   known reference produces the expected voice. These become behavioural (`.allium`)
   specs in the software repository, where the lane runs.
 
-## Open questions for the operator
+## Open questions
 
-- Which sound path is Casey's first target: the FM voice, the wave audio, or MIDI
-  playback?
-- Which game or test tone is the reference for authentic-sound acceptance?
+Resolved during planning:
+
+- Casey's first sound path is the 8-bit PCM path (`call/0005`); the FM voice already
+  works.
+- Authentic-sound acceptance is an 8-bit PCM test tone (`call/0005`).
+
+Still open, taken up in plan/0002:
+
 - Which Windows 9x release and which card revision (Gold 1000 or 2000) is the first
   test target?
 
