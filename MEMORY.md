@@ -729,3 +729,26 @@ OPERATIONAL FACTS:
   a commit-msg host-lint hook: NO "Phase N"/"Chapter N" ordinals or prose tropes in messages.
 - The driver is untestable on hardware here (no GoldLib + Win98SE); every fix is compile+repro
   verified only. Cross-check EVERY hardware finding against manual/src/ch07-low-level.md.
+
+## plan/0008 remediation, serial-by-subsystem (user chose this over parallel fan-out)
+- 2026-07-04: executing plan/0008's 26 findings serially by subsystem (foundation ->
+  wave -> FM -> MIDI -> timing -> adapter -> logging -> gate). Critical (bank switch)
+  already landed pre-compaction. NOT using the `## Build sequence` task-receipt mechanism
+  (no plan uses it; this project discharges via the obligations catalog + .obligations
+  manifests, which is how plan/0008 frames it). Each fix = spec obligation + pure header
+  + test + code + byte-repro build + host re-pin, its own commit.
+- FOUNDATION DONE (driver c56faa1, host 1c9406d, artifact f2be7998, gate GREEN): corrected
+  the MMA status decode. The status is the DIRECT read of base+4 (38CH); midi.cpp read it
+  via ReadMMA(0) = the Test/register-0 data, never status. Constants were mislabeled:
+  manual (manual/src/ch07-low-level.md line 730) gives D0..D7 = FIF0 FIF1 RRQ TRQ T0 T1 T2 OV,
+  level-sensitive (line 914; NOT auto-clear-on-read). Fixes: new pure mmastatus.h (decode +
+  MMA_STATUS_* constants) + tests/mmastatus_test.c; common.h includes it; added
+  IAdapterCommon::ReadMMAStatus (direct base+4 read, non-paged region 501-912 for DIRQL
+  callers); ISR + midi.cpp drain route through MmaStatusMidiRxReady; removed the
+  MMA_REG_STATUS index (0x00) footgun from midi.h + algwave.h. Obligation: wave.allium
+  rule PlaybackFifoServicesRender, dispositioned test:test_mma_status.
+- Build fact confirmed: `cc -O2 -Wall -Werror` test lane needs every static fn in a pure
+  header exercised; driver builds at /W3 (no /WX), so C4505 (unused static, a /W4 warning)
+  never fires -> a pure header included widely is safe. `host-lifecycle obligations` (non-strict,
+  as CI runs) passes; --strict-discharge wants Rust `fn NAME(` and warns on C tests
+  (pre-existing for test_nearest_rate/test_dither too) -- not a regression, CI doesn't run it.
