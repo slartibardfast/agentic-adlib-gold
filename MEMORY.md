@@ -424,3 +424,34 @@ points back.
   data path (call/0011, the 16-bit high-fidelity downsample to 12-bit; the nearest-rate map
   + TPDF dither are already done in wavedsp.h, the polyphase FIR is not). External gates
   unchanged: Windows CI cross-check lane, licensed deps-bundle hosting, GoldLib hardware.
+
+## 2026-07-04 — Off-rate resampler implemented, tested, and wired (call/0011)
+
+- The WaveCyclic path REJECTED any non-hardware source rate (the weed-able gap noted
+  earlier). Added wavesrc.h: WaveSrcHalfBand (a precomputed Q15 15-tap windowed-sinc
+  low-pass, unity DC gain, ~-48dB stopband — coefficients generated offline with Python,
+  embedded as integers since the kernel has no FPU), WaveSrcInterp (the shared single-step
+  linear interpolation), and WaveSrcResample (Q16 phase-accumulator resampler). Integer-only,
+  no 64-bit (inRate<<16 fits in 32 bits for rates <=65535; interp product kept in signed 32).
+- Wired into the MONO 16-bit PIO fill only (stereo's interleaved frames and 8-bit ISA DMA
+  can't resample in that loop): ValidateFormat accepts mono-16 off-rates [4000,48000];
+  SetFormat programs hardware at NearestSupportedRate(source) and sets m_ResampleStep =
+  (source<<16)/hwRate; FillFifo advances a fractional read position + WaveSrcInterp. Step
+  0x10000 (identity) for on-rate/stereo/8-bit → those paths byte-unchanged (verified: the
+  build's other subsystems reproduce; only algwave.cpp changed the .sys).
+- tests/wavesrc_test.c: FIR DC-unity + Nyquist rejection, interp endpoints/midpoint,
+  resampler identity/÷2-decimation/ramp-monotonicity/DC/range/output-cap. All pass.
+- HONEST scope: the resampling ARITHMETIC is unit-tested; the live PIO/DMA-timing integration
+  (fractional buffer consumption vs FIFO production) awaits GoldLib hardware bring-up
+  (plan/0004) — the same standing external gate that covers every driver runtime path. Did
+  NOT touch DataRangeIntersection, so kmixer may still resample upstream until the pin's
+  advertised range is widened (deferred, hardware-gated).
+- Byte-reproducible: adlibgold.sys sha256 b4c5d63c; re-pinned host to b5c6da6, updated
+  artifact + CI ARTIFACT_SHA. software --check GREEN.
+- ALL in-session buildable subsystems now done+tested: PCM 8-bit DSP, 16-bit dither, off-rate
+  resampler, Control-Chip mixer, SP2 protocol + KS exposure to sndvol, own-OPL3 voice
+  allocation, calibrated chip-timing. Six pure DSP/logic units, each unit-tested in the Tests
+  CI lane. Remaining gaps are all EXTERNAL and cannot be closed in this session: (1) the
+  Windows CI cross-check lane needs a Windows runner (attest-host=windows); (2) the operator
+  must host the licensed DDK deps-bundle at the recorded URL; (3) GoldLib hardware execution
+  proof on Windows 98SE. The Linux/Wine reproducible build lane is fully green.
