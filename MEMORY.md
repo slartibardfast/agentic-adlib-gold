@@ -762,3 +762,32 @@ OPERATIONAL FACTS:
   classifier gates). Repo is already public and call/0003 decided to publish the host
   rooms, so this exposes nothing new. Site: https://slartibardfast.github.io/agentic-adlib-gold/.
   If the deploy ever 404s again, re-check Pages is set to source "GitHub Actions".
+
+## plan/0008 wave subsystem: 16-bit FIFO service loop landed (findings #2 + #12)
+- 2026-07-04 (driver 03dda9c, host 3511728, artifact 410dc88c, gate GREEN): wired the
+  16-bit PIO FIFO service. Manual review (user-prompted, ch07) materially changed the fix
+  and caught a latent bug -- DO cross-check every hardware change against the manual:
+  * The FIFO is 128 bytes and the interrupt fires at the FILL LEVEL (FIFO INT=5 -> 32
+    bytes, manual line 828/864). FillFifo/DrainFifo moved MMA_FIFO_SIZE (128) per service
+    -> OVERFLOW by 32, raising OV. Fixed: refill FIFO_SIZE-32=96 (playback); drain the 32
+    guaranteed-present bytes (capture). Added MMA_FIFO_INT_BYTES=32.
+  * BOTH directions run on MMA channel 0 (the driver wires only ch0; interleave needs
+    ENB=1/DMA which 16-bit PIO doesn't use, line 846) -> both signal on FIF0 (0x01), NOT
+    FIF1. Renamed mmastatus.h helpers to channel semantics (MmaStatusChannel0Ready/1Ready);
+    ServiceWaveISR dispatches render-vs-capture off the stream's m_Capture, gated on FIF0.
+  * Format-2 byte order in FillFifo is CORRECT (verified line 856): dithered&0xFF is
+    "b3..b0 0000", dithered>>8 is "b11..b4", because dither leaves the 12-bit value in
+    bits 15..4. No change.
+- Mechanism: miniport gained m_pActiveStream (set in NewStream; cleared in the stream
+  dtor via GetInterruptSync()->CallSynchronizedRoutine(SyncClearActiveStream) so the ISR
+  can't touch a freed stream -- mirrors the bank-fix pattern; GetInterruptSync returns a
+  BORROWED ptr, no Release). Made the miniport a friend of the stream (mutual). ISR gates
+  on m_State==RUN && m_16Bit && FIF0. ServiceWaveISR sig changed to take the status byte.
+- #12 full-duplex: NewStream now REJECTS the second direction (STATUS_INVALID_DEVICE_REQUEST)
+  since one ch0/DMA/buffer/FIFO can't do both; single active stream. (True full-duplex =
+  wire channel 1, deferred.) Obligation: wave.allium ServiceAdvancesPosition (test:
+  test_wave_wrap exercises WaveWrapPosition, the extracted cyclic-position helper) + the
+  continuous-playback/capture LIVENESS stays attested-on-hardware.
+- Remaining wave findings: #3 channel-count/interleave programming (stereo unhandled in
+  ProgramMmaStart + FillFifo treats all as mono), #11 rate dual-meaning, #20 DMA validate,
+  #21 resampler bound (wavesrc.h step overflow for inRate>65535). Then FM, MIDI, timing, adapter.
