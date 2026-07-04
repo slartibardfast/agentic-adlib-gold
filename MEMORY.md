@@ -628,3 +628,24 @@ points back.
 - Third message-only history rewrite (git-filter-repo, fresh clone): HEAD tree byte-identical
   (6fe343e), artifact still b4c5d63c, force-pushed 6c844d7 -> b3a3372, synced worktree, re-pin.
   History is now free of every hard naming flag; only legitimate version warnings remain.
+
+## 2026-07-04 — Driver review remediation started (plan/0008): critical bank-switch fixed
+
+- Ran a 13-dimension adversarially-verified multi-agent review of the WDM driver (two
+  workflows, ~60 agents): 42 findings raised, 26 confirmed (1 critical, 8 high, 4 med, 13
+  low). The critical + the top requirements bug are on the two axes the plan flagged.
+- Cut plan/0008 (host prose milestone): remediate all 26 spec-first, each fix behind a
+  regression obligation (a .tla for concurrency, allium rules, pure tested helpers, or an
+  honest attested/structural disposition — no hollow-green). Full obligation catalog in the
+  plan. Also closes the plan/0007 MIDI UART lacuna with a new spec/midi.allium.
+- CRITICAL fixed end-to-end: authored spec/BankAccess.tla (Specula lane, TLC-green:
+  MutualExclusion + WriteSeesControl model the fixed synchronized design), then the code fix
+  in common.cpp — split ControlRegWrite and the WriteOPL3 array-1 branch into a synchronized
+  wrapper (CallSynchronizedRoutine at DIRQL) + a non-paged locked body, with a direct call
+  before the interrupt connects. Every caller now serializes vs the ISR with no call-site
+  change. Structural check: every shared base+2/3 write is centralized in common.cpp.
+- Byte-reproducible: adlibgold.sys 4e1e816c; re-pinned host to c7bd2eb. software --check GREEN.
+- Remaining plan/0008 workstreams (queued, per the catalog): wire the 16-bit FIFO service loop
+  (highest requirements fix); fix the ISR MMA status-read port; zero the FM member state;
+  spec/midi.allium + MIDI Tx flow control; stereo/channel programming; paging fixes; the
+  error-handling and low-severity cleanups; and the hot-path debug logging.
