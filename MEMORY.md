@@ -121,3 +121,19 @@ points back.
   operator work before the lane exists: package the DDK vendor release and fill the
   deps-bundle URL + sha256, then retire repro-exempt (call/0002) when the Wine lane
   reproduces byte-for-byte.
+
+## 2026-07-04 — Upgraded to template e8a9ae1 (case c)
+
+- Re-ran the host upgrade. classify = c. `host-lifecycle upgrade .` migrated the legacy
+  .host stamp to baseline 46a1fd2 and reported 0 pending ledger entries: the template's
+  move (565410a -> e8a9ae1) added no UPGRADING.md action, only a tool/CI version bump.
+- Applied e8a9ae1's substance: re-pinned host-template to e8a9ae1; bumped the four tool
+  submodules (host-lint v0.12.1 at 78804cd, host-lifecycle 7e63d99, allium 2b7d66f,
+  specula 6bb5857); moved mdbook.yml and prose.yml to actions/checkout v5 with the
+  current host-lifecycle rev 7e63d99.
+- The installed host-lifecycle binary now carries newer code (still self-reports 0.35.1)
+  that materializes the Where-room bare store as .bare, not .git. Tore down and
+  re-materialized software/adlib_gold/ to the .bare layout; software --check is clean.
+- No spine doc (CLAUDE.md / STRUCTURE.md / lifecycle.manifest) changed in the span, so
+  nothing to re-apply there. No call/ decision for the upgrade: methodology-version
+  events are recorded in the upgrade receipt and here, not in call/ (anti-ouroboros).
