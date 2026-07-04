@@ -133,15 +133,21 @@ Grouped with the other paging corrections below; the obligation is `structural`,
 discharged by a checked build with the page-trim stress that exercises the transmit
 path, recorded as an attested build step.
 
-### Read the sampling status from the correct port, once
+### Decode the sampling status correctly (manual-corrected)
 
-The ISR reads the write-only index port for the sampling status instead of the
-index-zero read protocol the register accessor uses, so shared-interrupt source
-discrimination is unreliable. Fix by reconciling both reads into one shared
-status-read method that uses the correct protocol. The ISR reads it once and hands
-the captured value to each service routine, each gated on its own bit. Extract the
-port-sequence decision into a pure helper and unit-test the framing; the obligation is
-a `test:` in the wave `.obligations`.
+Consulting the manual (ch07) while implementing this corrected the review here. The
+sampling status is the direct read of base+4 (38CH); the index protocol reads a
+register at base+5 and never returns the status, so the ISR's own direct read is
+already right. The real defects are that the MIDI service routine reads the status
+through the register accessor with index zero, which selects the Test register rather
+than the status, and that the status bit constants are mislabeled (0x01 is the
+playback FIFO request, not a timer bit; 0x04 for MIDI receive is correct; the MIDI
+transmit-empty bit is 0x08). Fix by adding a direct status-read method, correcting the
+constants against the manual, having the ISR read the status once and hand the value
+to each service routine on its own bit (the playback FIFO bit for the wave path, the
+receive bit for MIDI), and having the MIDI service routine read the status through the
+direct method. Extract the bit decode into a pure helper and unit-test it; the
+obligation is a `test:` in the wave `.obligations`.
 
 ## The medium and low remediations, grouped by owning spec
 
@@ -210,7 +216,7 @@ checked build, recorded).
 | Voice/sustain/patch/bend uninitialised (fmsynth.cpp:1341) | high | fmsynth.allium | fresh stream starts all voices free | rule + test |
 | MIDI transmit no flow control (midi.cpp:787) | high | spec/midi.allium (new) | transmit only while FIFO has space | test + structural |
 | Paged GetInterruptSync at DISPATCH (common.cpp:419) | high | (code) | non-paged accessor legal at raised IRQL | structural + attested |
-| ISR reads wrong sampling-status port (common.cpp:757) | high | wave.allium | status read uses the index-0 protocol | test |
+| Sampling status decoded wrong: MIDI reads the Test register + mislabeled bits (midi.cpp:659, common.h:86) | high | wave.allium | status via the direct read and correct bits | test |
 | FM Init paged body under spinlock (fmsynth.cpp:959) | med | (code) | init runs non-paged | structural + attested |
 | EEPROM unsynchronized, holds bank (common.cpp:1049) | med | spec/BankAccess.tla | folded into the bank obligation | tla + structural |
 | Sampling-frequency dual meaning (algwave.cpp:975) | med | wave.allium | rate resolved once, before run | test |

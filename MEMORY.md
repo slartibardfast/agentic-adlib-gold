@@ -649,3 +649,33 @@ points back.
   (highest requirements fix); fix the ISR MMA status-read port; zero the FM member state;
   spec/midi.allium + MIDI Tx flow control; stereo/channel programming; paging fixes; the
   error-handling and low-severity cleanups; and the hot-path debug logging.
+
+## 2026-07-04 — Manual consultation corrects the review's ISR-status finding (plan/0008)
+
+- Consulting ch07-low-level.md (the goal's "consult the manual for every chip specific")
+  while implementing the 16-bit service-loop fix OVERTURNED the review's finding #9 and found
+  more real bugs the review missed. The MMA/YMZ263 status truth (manual lines 342, 710-712,
+  728): 38CH=base+4 is the Sampling-Channel-0 register-SELECT port on WRITE and the STATUS
+  register on READ; 38DH=base+5 is the data port. Status bits: FIF0=D0(0x01, playback FIFO
+  ch0 request), FIF1=D1(0x02), RRQ=D2(0x04), TRQ=D3(0x08, MIDI transmit FIFO empty),
+  T0/T1/T2=D4-6, OV=D7. All level-sensitive ("RRQ becomes 1 when the FIFO has data") -- NOT
+  auto-clearing.
+- Consequences (corrections to the review + new bugs):
+  1. The ISR's DIRECT READ_PORT_UCHAR(base+4) IS the correct status read. Review finding #9
+     ("ISR reads the wrong port, should use the index-0/base+5 protocol") is INVERTED -- the
+     index protocol reads a REGISTER (base+5), never the status; ReadMMA can never read status.
+  2. ServiceMidiISR's ReadMMA(MMA_REG_STATUS=0) (midi.cpp:479,659) reads REGISTER 0 = the TEST
+     register (manual: "should not be accessed"), NOT the status. Its RRQ check is on garbage
+     -> MIDI receive is unreliable. This is the real bug (review said this read was "correct").
+  3. common.h MMA_STATUS_* constants are MISLABELED: 0x01 called "TRQ" is actually FIF0
+     (playback FIFO ch0); 0x02 called "PRQ" is FIF1 (ch1); RRQ=0x04 is correct. TRQ/PRQ are
+     currently dead (unused), so latent -- but the playback-FIFO gate must use FIF0=0x01, and
+     the real MIDI transmit-empty for the Tx flow-control fix is TRQ=D3=0x08.
+  4. The "auto-clear" comments (algwave.h:23, midi.h:27, the ISR comment) are wrong.
+- CORRECTED fix design (supersedes plan/0008's finding-#9 row): add a direct ReadMMAStatus()
+  (read base+4); fix the status constants per the manual; ISR reads status via ReadMMAStatus()
+  and gates ServiceWaveISR on FIF0 (0x01) and ServiceMidiISR on RRQ (0x04), passing the value;
+  ServiceMidiISR reads status via ReadMMAStatus() not ReadMMA(0); MIDI Tx polls TRQ=0x08.
+- LESSON: even an adversarially-verified multi-agent review can invert a hardware finding when
+  the verifiers lack the datasheet. The manual is the authority; cross-check every hardware
+  finding against it before coding. This is why the goal mandates it.
