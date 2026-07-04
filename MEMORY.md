@@ -184,3 +184,24 @@ points back.
   build/CI-green half of the goal. The doable spec-first foundation is the live increment.
 - Next spec-first increments: topology.allium (mixer + SP2), fmsynth.allium (own OPL3),
   and the .tla chip-timing spec (Specula lane, call/0013).
+
+## 2026-07-04 — Spec-first foundation complete: all lanes live and green
+
+- Authored, validated, and pushed four specs to adlib_gold, each live in its CI lane;
+  host re-pinned to c0ca6ef:
+  - allium behaviour lane (check + analyse clean, obligations complete, behavioural ones
+    waived until a build-backed test suite per plan/0004-0006): spec/wave.allium
+    (PCM/WaveCyclic), spec/topology.allium (mixer + SP2, call/0012), spec/fmsynth.allium
+    (own OPL3, call/0014).
+  - Specula/TLC lane (model-checks clean; invariant: every register write honours the
+    chip minimum inter-write delay, so the driver is correct on faster CPUs):
+    spec/ChipTiming.tla + .cfg (call/0013).
+  - Wired adlib_gold CI: allium.yml (allium-cli 3.2.4 + host-lifecycle 7e63d99) and
+    specula.yml (Temurin 21 + tla2tools v1.8.0). software --check: both lanes present.
+- BLOCKED externally, not by me: the driver BUILD needs a Windows/Wine env plus the
+  vendored Win2K DDK bundle (operator holds the disc; no URL/sha yet, call/0008); the
+  GoldLib HARDWARE is not accessible. So the code implementation (16-bit resampler, SP2
+  nodes, own FM, calibrated delays), the behavioural test discharge, and repeatable-builds-
+  green all sit downstream of those. The spec-first half is the doable, live increment.
+- The MIDI UART miniport (midi.cpp) stays the plan/0007 lacuna (outside the named goal);
+  its spec is deferred to that disposition.
