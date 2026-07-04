@@ -137,3 +137,28 @@ points back.
 - No spine doc (CLAUDE.md / STRUCTURE.md / lifecycle.manifest) changed in the span, so
   nothing to re-apply there. No call/ decision for the upgrade: methodology-version
   events are recorded in the upgrade receipt and here, not in call/ (anti-ouroboros).
+
+## 2026-07-04 — Completion goal and the plan expansion
+
+- Recorded the completion goal (call/0010): a complete WDM driver end-to-end for Windows
+  98SE on the GoldLib recreation, spec-first, across PCM, mixer, and FM synth, proven by
+  repeatable dual-hosted builds. Done = KS filters enumerate, each subsystem meets its
+  spec, both build lanes reproduce byte-for-byte.
+- Design decisions:
+  - call/0011: 16-bit PCM high-fidelity downsampling. TPDF dither 16->12 (noise-shaping
+    the reach goal); fixed-point polyphase FIR resample to the nearest hardware rate;
+    a property or Kani-bounded fidelity target.
+  - call/0012: the SP2 (YM7128) Special Effects module exposed through the KS mixer for
+    all documented modes. Gap: algtopo has no SP2 node, though common.cpp detects it and
+    reaches it over register 0x18 (bit-serial), so surfacing it is new work.
+  - call/0013: chip timing enforced in software (calibrated stalls) because we run on
+    radically faster CPUs; specified as a .tla timing spec (first use of the Specula lane).
+  - call/0014: use our own OPL3 FM synth (fmsynth.cpp), not the stock DDK synth. So
+    call/0005's "FM already works" meant a separate driver; plan/0006 owns the real bring-up.
+- Plan expanded (PLAN.md work order): 0001, 0003, 0002, then 0004 (16-bit PCM), 0005
+  (mixer + SP2), 0006 (own FM), 0007 (capstone, which dispositions the MIDI UART lacuna).
+- Spec-driven: .allium behaviour distilled from the skeleton + .tla timing, both living in
+  the adlib_gold repo and run in its CI; the host plan references them by pin. The SDK
+  manual (the published mdBook, e.g. appendix-sp2.md) is the authority for chip specifics.
+- Open lacuna carried into plan/0007: the MIDI UART miniport (midi.cpp) is not in the
+  named goal; disposition it before calling the driver complete.
