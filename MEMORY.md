@@ -752,3 +752,13 @@ OPERATIONAL FACTS:
   never fires -> a pure header included widely is safe. `host-lifecycle obligations` (non-strict,
   as CI runs) passes; --strict-discharge wants Rust `fn NAME(` and warns on C tests
   (pre-existing for test_nearest_rate/test_dither too) -- not a regression, CI doesn't run it.
+
+## mdBook host site: GitHub Pages enabled (one-time infra fix)
+- 2026-07-04: the host mdBook `deploy` job was failing (build green, deploy failed in 4s)
+  because GitHub Pages was never enabled on slartibardfast/agentic-adlib-gold
+  (`GET /repos/.../pages` -> 404). Fixed once via
+  `gh api -X POST repos/slartibardfast/agentic-adlib-gold/pages -f build_type=workflow`
+  (as slartibardfast; user-authorized -- it is an outward-facing publish the auto-mode
+  classifier gates). Repo is already public and call/0003 decided to publish the host
+  rooms, so this exposes nothing new. Site: https://slartibardfast.github.io/agentic-adlib-gold/.
+  If the deploy ever 404s again, re-check Pages is set to source "GitHub Actions".
