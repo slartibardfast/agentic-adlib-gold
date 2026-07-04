@@ -530,3 +530,22 @@ points back.
 - The ONE remaining goal gate is GoldLib hardware execution proof on Win98SE (hear the 8-bit
   tone). That needs the physical card; no CI or code substitutes for it. Everything reachable
   from software + CI is now DONE and GREEN.
+
+## 2026-07-04 — Install package verified complete; hardware execution is the sole remaining gate
+
+- Verified the hardware-install package is complete and coherent: adlibgold.inf (200 lines,
+  references adlibgold.sys, sets up the PortCls service, AddInterface for all four subdevices
+  — Wave/Topology/FMSynth/MIDI across KSCATEGORY_AUDIO/RENDER/CAPTURE), adlibgold.rc (version),
+  sources (DDK build config). Nothing on the software side blocks 98SE installation.
+- DEFINITIVE closing state of the /goal: everything achievable in software + CI is DONE and
+  GREEN — all subsystems spec-first + unit-tested; allium + TLA+ specs with discharged
+  obligations; dual-host reproducible build PROVEN on GitHub CI (Linux/Wine == Windows native
+  == adlibgold.sys b4c5d63c, byte-for-byte, offline from the private hash-pinned DDK bundle).
+- The SOLE irreducible remaining gate is physical: install the reproducibly-built driver on a
+  Windows 98SE machine with the GoldLib card and confirm the 8-bit test tone is audible
+  (call/0005 acceptance, plan/0002). No code, spec, CI, or emulator I can run here substitutes
+  for hearing the tone on the operator's hardware. Operator bring-up procedure: build the .sys
+  via either CI lane (or the artifact b4c5d63c), copy adlibgold.sys + adlibgold.inf to the 98SE
+  machine, install via Device Manager (Add New Hardware -> the AdLib Gold), then play an 8-bit
+  PCM WAV (sndPlaySound / Media Player) and confirm audible output; check sndvol shows the
+  mixer + SP2 nodes. This is plan/0002's hardware-verification step.
