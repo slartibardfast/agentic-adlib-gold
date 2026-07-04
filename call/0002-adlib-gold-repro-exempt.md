@@ -1,6 +1,6 @@
 # adlib_gold is not yet reproducible on this host: repro-exempt
 
-- Status: accepted
+- Status: superseded by call/0015
 - Scope: software
 - Date: 2026-07-04
 

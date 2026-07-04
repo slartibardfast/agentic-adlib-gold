@@ -46,6 +46,17 @@ default.
 - When the Wine lane reproduces byte-for-byte, the `repro-exempt = call/0002` line is
   dropped and `software --check` stays clean without it.
 
+## Execution status: the build is reproducible
+
+Done: the driver builds byte-reproducibly under Linux/Wine and `repro-exempt` is retired
+(`call/0015`). `build.sh` stages the pinned DDK+VC6 deps-bundle (`call/0008`), builds
+offline, and normalises the PE timestamp; two from-scratch builds produce the identical
+`adlibgold.sys` (sha256 `3f7d3c3c...`). `.host-software` records the build recipe, the
+artifact hash, and the deps-bundle; `deps-bundle.lock` pins the bundle; `software --check`
+is clean. `reproducible-build.yml` rebuilds on Linux/Wine CI and fails unless the hash
+reproduces. Remaining: the Windows CI cross-check lane (`attest-host = windows`), and the
+operator hosting the licensed bundle at the recorded `deps-bundle` URL.
+
 ## Execution status: the driver builds under Wine
 
 The driver builds end-to-end on this host: all six sources compile and link to a valid

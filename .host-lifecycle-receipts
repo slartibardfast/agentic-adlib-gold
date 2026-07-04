@@ -57,3 +57,9 @@
     evidence = book renders every room (22 pages) after the upgrade; mdbook.yml on checkout v5 and host-lifecycle 7e63d99
     tool = host-lifecycle@0.36.0
     recorded = 2026-07-04
+
+[receipt "release" "adlib_gold"]
+    disposition = skip
+    reason = no release cut this session; the driver builds reproducibly (call/0015) but no versioned tag was cut
+    tool = host-lifecycle@0.36.0
+    recorded = 2026-07-04

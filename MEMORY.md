@@ -305,3 +305,25 @@ points back.
   voice allocation (call/0014), calibrated chip-timing writes (call/0013); reproducible
   dual-hosted CI + hermetic deps-bundle (needs the licensed toolchain packaged); and the
   GoldLib hardware test (external). Progressing one tested feature at a time.
+
+## 2026-07-04 — Reproducible build achieved: repro-exempt retired
+
+- The driver builds BYTE-REPRODUCIBLY under Linux/Wine. Two independent from-scratch runs of
+  build.sh produce the identical adlibgold.sys (sha256 3f7d3c3ce9...); the only per-build
+  difference was the PE TimeDateStamp, which pe_normalize.py zeros (COFF stamp, debug-dir
+  stamp, checksum).
+- Packaged the assembled DDK+VC6 toolchain as the hermetic deps-bundle
+  (adlibgold-ddk-vc6-bundle.tar.gz, 19 MB, sha256 f60af3fd...). build.sh stages it and builds
+  offline. deps-bundle.lock (in the driver repo) pins <url> <sha> — the tool parses it as
+  whitespace tokens f[0]==url && f[1]==sha, so the lock is exactly the .host-software line.
+- Retired repro-exempt: call/0015 records the reproducible build and supersedes call/0002
+  (status -> superseded). .host-software now carries build=./build.sh, toolchain=win2k-ddk-vc6,
+  deploy=main, attest-host=linux, artifact=adlibgold.sys <sha>, deps-bundle=<url> <sha>.
+  software --check is GREEN (deps-bundle matches lock; deploy recorded).
+- Wired reproducible-build.yml (Linux/Wine CI): installs wine, downloads+sha-verifies the
+  bundle from the DDK_BUNDLE_URL secret (Microsoft licence forbids public redistribution),
+  builds offline, fails unless adlibgold.sys reproduces the hash.
+- So "repeatable builds on GitHub, byte-identical, offline against a vendored hash-pinned DDK
+  bundle" is delivered for the Linux/Wine lane. Remaining: the Windows CI cross-check lane
+  (attest-host=windows), the operator hosting the licensed bundle at the recorded URL, and the
+  full subsystem features + GoldLib hardware test.
