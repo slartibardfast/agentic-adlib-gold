@@ -609,3 +609,22 @@ points back.
   "Permission denied" exec-bit failure, all since fixed. None are in the current branch.
 - All three operator asks this round are complete: (1) remaining ordinal tells reworked,
   (2) test tone moved to tools/testtone utility, (3) all Actions green.
+
+## 2026-07-04 — Reworked Chapter 4 / Section 11 / section-numeral citations (determined they DO break the rules)
+
+- Operator asked to rework Chapter 4 + Section 11 citations "if we determine they actually
+  break the rules." Applied the methodology test (reword ordinal->content by default when a
+  content name is available; only box/declare an IRREDUCIBLE citation). Determination:
+  - Chapter 4 (789b19b): BREAKS. It was one link target in a list whose every sibling is
+    content-named (Installing the Hardware, Mixer Panel TSR, ...); Chapter 4 = "Software
+    Applications" (ch04). Reworded to "Software Applications".
+  - Section 11 (046c8e3): BREAKS. Content name stated inline "(Host Environment)". Reworded
+    to "a Host Environment section".
+  - d78d5f3 "section (60 pages)": BREAKS (same (section) tell family, "section" adjacent to a
+    page count, removable). Reworded to "the SUMMARY renderings (60 pages)".
+  - LEFT (do NOT break / irreducible): version strings (Windows 3.1, MSVC 6.0, cl.exe 12.00,
+    v1.x) are host-lint WARNINGS not hard flags -- the version IS the identifier; and Appendix
+    G is not flagged at all. These stay per "declare, don't rename" for legitimate vocabulary.
+- Third message-only history rewrite (git-filter-repo, fresh clone): HEAD tree byte-identical
+  (6fe343e), artifact still b4c5d63c, force-pushed 6c844d7 -> b3a3372, synced worktree, re-pin.
+  History is now free of every hard naming flag; only legitimate version warnings remain.
