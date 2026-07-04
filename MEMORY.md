@@ -480,3 +480,26 @@ points back.
   ONLY remaining gaps are external and unautomatable from here: (1) run the Windows CI lane
   (needs the runner + hosted bundle); (2) GoldLib hardware execution proof on Win98SE. No
   further in-repo work advances these — they need operator resources.
+
+## 2026-07-04 — FACTUAL GitHub CI state: the single remaining blocker is the bundle secret
+
+- Checked the actual GitHub Actions runs on slartibardfast/adlib_gold (gh run list). Result:
+  - Tests lane: SUCCESS (all six userspace subsystem tests pass on GitHub CI).
+  - Specs lane (allium check+analyse+obligations): SUCCESS.
+  - Timing lane (specula/TLC ChipTiming.tla): SUCCESS.
+  - Reproducible Build (Linux/Wine): FAILURE.
+  - Reproducible Build (Windows / windows-latest): FAILURE (17s) — it DID trigger and run
+    natively on windows-latest (log shows C:\Program Files\Git\bin\bash.EXE).
+- Root cause is identical and singular for BOTH repro-build lanes: the "Fetch and verify the
+  pinned deps-bundle" step runs `curl -fsSL -o bundle.tar.gz ""` — the URL is EMPTY because
+  the DDK_BUNDLE_URL secret is unset (gh secret list returns nothing). The workflows are
+  structurally correct; the build never starts because the Microsoft-licensed DDK+VC6 bundle
+  (sha f60af3fd...) is not hosted anywhere CI can fetch.
+- CONCLUSION (definitive): every gate closable by code/config/spec/test is done and, where the
+  bundle isn't needed (Tests/Specs/Timing), CI-GREEN on GitHub. The ONLY blocker to the
+  dual-hosted byte-identity proof is operator action: host the licensed bundle and set
+  DDK_BUNDLE_URL on slartibardfast/adlib_gold. Then both lanes run and prove byte-identity.
+  I cannot host Microsoft's DDK publicly (license forbids it) nor set the secret with a bundle
+  I may not redistribute. The Wine build reproduces b4c5d63c locally (proven, twice).
+- The other external gate (GoldLib hardware execution proof on Win98SE) likewise needs the
+  physical card. No in-repo work advances either; both are operator-resource dependencies.
