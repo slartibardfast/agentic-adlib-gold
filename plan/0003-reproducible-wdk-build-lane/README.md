@@ -29,26 +29,32 @@ needs, publish it as a tagged release asset where its Microsoft licence permits,
 its sha256 in a committed `deps-bundle.lock`, and set `deps-bundle` in `.host-software`
 to the release URL and hash.
 
+The source DDK is the MSDN Disc 0006, Windows DDK October 2000 Edition (the operator
+holds the disc). Because the Wine lane must be byte-identical to the Windows lane
+(`call/0009`), the build is made deterministic: the PE `TimeDateStamp` and any embedded
+build paths are pinned or normalised, since the DDK linker stamps a timestamp by
+default.
+
 ## Acceptance
 
 - `.host-software` records, per platform, the build recipe (the `toolchain` and the
   `build` command) and the `adlibgold.sys` artifact hash for the `adlib_gold`
   component.
 - `host-lifecycle software --verify-build` rebuilds from the pin and reproduces the
-  recorded artifact on at least one lane.
-- When a lane reproduces, the `repro-exempt = call/0002` line is dropped and
-  `software --check` stays clean without it.
+  recorded `adlibgold.sys` byte-for-byte on the Linux/Wine lane, identical to the
+  Windows lane's output (`call/0009`).
+- When the Wine lane reproduces byte-for-byte, the `repro-exempt = call/0002` line is
+  dropped and `software --check` stays clean without it.
 
 ## Needs from the operator
 
 Resolved:
 
-- The toolchain is the Windows 2000 DDK, vendored as a hash-pinned `.zip` deps-bundle
-  published as a vendor release (`call/0008`).
+- The toolchain is the Windows 2000 DDK (MSDN Disc 0006, October 2000 Edition), vendored
+  as a hash-pinned `.zip` deps-bundle published as a vendor release (`call/0008`).
+- The Wine lane must be byte-identical to the Windows lane (`call/0009`).
 
 Still open:
 
 - The vendor release itself: the packaged DDK `.zip`, its host location (subject to the
   Microsoft licence, see `call/0008`), and the resulting `deps-bundle` URL and sha256.
-- Whether the Wine lane must reach a byte-identical artifact, or whether a successful
-  Wine build with the Windows lane as the reproducibility anchor is enough.
