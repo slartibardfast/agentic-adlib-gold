@@ -103,3 +103,21 @@ points back.
   (operator requested). Local hooks are not cloned, so this applies on this machine
   only, alongside the host-lint pre-commit and commit-msg hooks.
 - Pushed the adoption and planning work; origin/main is current.
+- Update: the gh active account reverts to connollydavid on its own, which broke the
+  first auto-push. Robust fix: pinned this repo's local git credential helper to fetch
+  slartibardfast's token directly (`gh auth token --user slartibardfast`), so pushes
+  authenticate as slartibardfast regardless of the active account. No global switch
+  needed. Auto-push is reliable now.
+
+## 2026-07-04 — Wine byte-identical requirement and the DDK source
+
+- call/0009: the Linux/Wine build lane must produce a byte-identical adlibgold.sys equal
+  to the Windows CI lane's output. The Windows-as-anchor fallback (call/0007) is
+  withdrawn. This requires a deterministic build: pin or normalise the PE TimeDateStamp
+  and any embedded build paths (the DDK linker stamps a timestamp by default).
+- DDK source for the vendored deps-bundle (call/0008): MSDN Disc 0006, Windows DDK
+  October 2000 Edition, held by the operator at D:\download\...CD. Recorded in plan/0003.
+- Build-lane design is now fully decided (call/0007, 0008, 0009). The only remaining
+  operator work before the lane exists: package the DDK vendor release and fill the
+  deps-bundle URL + sha256, then retire repro-exempt (call/0002) when the Wine lane
+  reproduces byte-for-byte.
