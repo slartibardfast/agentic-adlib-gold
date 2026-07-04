@@ -162,3 +162,25 @@ points back.
   manual (the published mdBook, e.g. appendix-sp2.md) is the authority for chip specifics.
 - Open lacuna carried into plan/0007: the MIDI UART miniport (midi.cpp) is not in the
   named goal; disposition it before calling the driver complete.
+
+## 2026-07-04 — Spec-first: the first behaviour spec is live (wave/PCM)
+
+- Started executing the goal spec-first. Authored spec/wave.allium in the adlib_gold repo
+  (distilled from algwave.cpp): the WaveCyclic render path (PCM format acceptance, the KS
+  transport state machine, resample-off-rate, dither-16-to-12). allium check and analyse
+  clean (0/0); allium plan derives 31 obligations.
+- Wrote spec/wave.obligations dispositioning all 31: spec-integrity as structural, the
+  behavioural ones waived until a runnable harness (honest gap, not hollow-green). The
+  harness lands with plan/0004 once the driver builds (blocked on the DDK bundle, call/0008).
+- Wired the allium CI lane in adlib_gold (.github/workflows/allium.yml, pinned allium-cli
+  3.2.4 + host-lifecycle 7e63d99): it runs check + analyse literally (the host gate greps
+  for those strings) + plan + obligations. Committed and pushed to slartibardfast/adlib_gold.
+- Re-pinned .host-software to the new adlib_gold SHA (752b853). software --check green:
+  the allium lane is present and the obligations manifest is complete.
+- Spec noted a real spec-vs-code gap (weed-able): the skeleton rejects off-rates; the spec
+  leads with resample (call/0011), a divergence plan/0004 closes.
+- Blocked externally (not by me): the driver build (Windows/Wine + DDK bundle you hold),
+  the GoldLib hardware tests, and therefore the behavioural test discharge and the whole
+  build/CI-green half of the goal. The doable spec-first foundation is the live increment.
+- Next spec-first increments: topology.allium (mixer + SP2), fmsynth.allium (own OPL3),
+  and the .tla chip-timing spec (Specula lane, call/0013).
