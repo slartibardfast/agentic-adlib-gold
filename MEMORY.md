@@ -327,3 +327,22 @@ points back.
   bundle" is delivered for the Linux/Wine lane. Remaining: the Windows CI cross-check lane
   (attest-host=windows), the operator hosting the licensed bundle at the recorded URL, and the
   full subsystem features + GoldLib hardware test.
+
+## 2026-07-04 — SP2 special-effects subsystem: bit-serial protocol implemented + tested
+
+- Implemented the YM7128 (SP2) surround protocol as pure code (sp2.h), distilled from the
+  SDK SURROUND sample (appendix-sp2.md): register-0x18 bit-serial, MSB-first, three writes
+  per bit (CLK rising edge latches), 8 address bits (ADR low) then latch high, 8 value bits
+  (ADR high) then latch low. 50 command bytes per register write.
+- tests/sp2_test.c decodes the command stream back to (register, value) and checks the ADR
+  sequencing — passes, runs in the Tests CI lane (no hardware). Wired into the adapter as
+  IAdapterCommon::WriteSurroundReg, which clocks a write out over register 0x18. 6/6 compile.
+- Rebuilt the SP2 source twice via build.sh: byte-identical (artifact sha256 4fc12d22...);
+  updated .host-software artifact + reproducible-build.yml ARTIFACT_SHA. software --check GREEN.
+- Lesson: changing driver source changes the deterministic artifact hash, so the recorded
+  artifact= (in .host-software) and the CI ARTIFACT_SHA must be re-derived and updated each
+  time (rebuild twice to confirm reproducibility, then record).
+- Subsystem tally: PCM DSP (rate map + dither) done+tested; SP2 protocol done+tested. Next:
+  the KS topology SP2 nodes (expose to sndvol), own-FM voice allocation (call/0014), the
+  stream resampler data path, and calibrated chip-timing writes (call/0013). Then the Windows
+  CI cross-check lane and the GoldLib hardware test (external).
