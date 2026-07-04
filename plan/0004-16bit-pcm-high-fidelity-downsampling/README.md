@@ -25,6 +25,10 @@ stream position. It runs in that repo's CI (allium check plus analyse plus plan)
 the obligations discharged by tests, and a property test or a Kani proof holds the
 fixed-point resampler to its fidelity bound. This milestone references the spec by pin.
 
+The spec is authored and live at the software pin: `allium check` and `allium analyse` are
+clean, and `spec/wave.obligations` dispositions all 31 `allium plan` obligations (the
+behavioural ones waived until this milestone lands the harness).
+
 ## Acceptance
 
 - 16-bit PCM at 44100 and 48000 Hz plays on the GoldLib recreation without audible
