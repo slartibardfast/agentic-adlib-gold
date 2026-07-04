@@ -851,3 +851,36 @@ OPERATIONAL FACTS:
   the 3 places -- but always rebuild to CONFIRM byte-identity before skipping the hash bump.
 - NEXT (unchanged): remaining WAVE #3 channel-count/interleave, #11 rate dual-meaning, #20 DMA
   validate; then FM/MIDI/timing/adapter/logging/gate.
+
+## plan/0008 finding #3 landed: channel-count programming, stereo deferred (2026-07-04)
+- DONE: driver @ 188a8d2 (artifact 4744eff6, was 410dc88c), host @ 31bb01d (re-pin). call/0016
+  committed first (04c9c19). `software --check` GREEN; wave allium check/analyse/plan +
+  obligations clean (40 dispositioned); all 9 userspace tests pass incl. new wavereg_test.
+- MANUAL-CORRECTED (the user said "consult the manual, be careful" and declined the A/B/C
+  scope options; careful manual reading decided it). The plan said "set the interleave bit
+  for stereo", but ch07 makes that wrong for the path that matters:
+  * Reg 0Ch ILV interleaving REQUIRES DMA: "ENB must be 1 for both channels" (line 846), and
+    ENB is the DMA-mode bit (line 874). The 16-bit dithered path is PIO (ENB=0), so ILV is
+    inoperative there. KMixer's default is 16-bit, so this is the path that matters.
+  * Correct stereo drives ch0->left, ch1->right and must program CHANNEL 1, which the driver
+    cannot address at all: WriteMMA/ReadMMA only touch ch0 (base+4/5 = ALG_REG_MMA0_*).
+    ALG_REG_MMA1_* (base+6/7) are defined but NEVER used. Manual's ch1 addressing is
+    ambiguous (shared select @38CH + data @38FH vs symmetric base+6/7) and untestable here.
+  * "12 bit stereo" IS a real mode (line 912) but needs software dual-FIFO interleave (PIO)
+    or DMA+ILV -- both need the ch1 path that doesn't exist.
+- DECISION (call/0016, software scope): digital audio is MONO until a hardware-verified
+  dual-channel path exists. Advertise MaximumChannels=1 (data range line 52) so Windows
+  downmixes; ValidateFormat rejects nChannels!=1 (defense in depth). This also REMOVED a live
+  bug: stereo was accepted and played as garbled mono (FillFifo read the interleaved buffer
+  as a flat mono 2-byte stream into ch0's one FIFO).
+- FIX shape: pure wavereg.h maps channel count -> reg-09 L/R bits + reg-0Ch ILV, manual-
+  grounded (mono->L|R,ILV=0; stereo->L,ILV as the DOCUMENTED-but-unadmitted target).
+  ProgramMmaStart routes through it. Locked behind wave.allium MonoRoutesBothOutputs
+  (test:test_wave_reg exercises=WaveMmaPlayChannelBits). A channel-count-independent helper
+  would trip -Werror unused-param, so both branches use `channels` (mono result is what ships).
+- NOTE: helper params in a pure header MUST be used (tests build -Werror); commit MESSAGES
+  are prose-audited (antithesis "not X on its own" warns, non-blocking) AND naming-scanned
+  ("#N" tracker-ref shape is BLOCKED -- say "the resampler block guard", not "finding #21").
+- NEXT wave findings: #11 rate dual-meaning (algwave.cpp ~975 NewStream vs SetFormat resolve
+  hw rate+step once; pure test), #20 DMA channel validate like the IRQ path (algwave ~547
+  ConfigureDmaAndIrq; pure test). Then FM/MIDI/timing/adapter/logging/gate.
