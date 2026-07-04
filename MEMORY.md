@@ -370,3 +370,34 @@ points back.
   Next: the KS topology SP2 nodes (expose to sndvol) + Control-mixer nodes, own-FM voice
   allocation (call/0014), the stream resampler data path. External gates unchanged: Windows
   CI cross-check lane, licensed deps-bundle hosting, GoldLib hardware test.
+
+## 2026-07-04 — SP2 surround exposed through the KS topology to sndvol (call/0012)
+
+- The topology miniport (algtopo) now surfaces two SP2 nodes: an enable
+  (KSNODETYPE_LOUDNESS on/off) and a mode selector (KSNODETYPE_STEREO_WIDE, one step per
+  documented mode), routed treble -> Sp2Enable -> Sp2Mode -> mute. Property handlers
+  download a 31-register preset over Control-Chip register 0x18 via WriteSurroundReg.
+- Key design point (honors topology.allium SurroundResolves/Sp2NodeTracksHardware): a
+  SECOND static PCFILTER_DESCRIPTOR (same node array, wider NodeCount + its own connection
+  array) carries the SP2 nodes; GetDescription returns it only when the card reports the
+  module (ID reg 0x00 D6, active low: 0=present). So a card without the SP2 shows no dead
+  control — the nodes literally aren't in the graph.
+- The presets are pure data (sp2modes.h), composed from the datasheet-documented
+  attenuation (bit5 sign + 5-bit level; 0x1F=0dB) and delay (5-bit; 0x1F=100ms) encodings
+  in appendix-sp2.md. Mode 0 = initial-clear off (VM/VC/VL/VR=0); modes 1-3 distinct.
+  NOTE: the manual's REGISTER MAP has OCR collisions (VR shown "18", T2 "18"); canonical
+  addresses are VR=0x13, T0-T8=0x16-0x1E (31 regs total, matches sp2.h SP2_NUM_REGS).
+- tests/sp2modes_test.c verifies count==4 (== spec sp2_mode_count), off state, encodings,
+  distinctness, out-of-range fallback. Discharges config-default.sp2_mode_count via
+  test:test_sp2_mode_count. The 5 node-reachability rules stay honestly waived — they need
+  the KS topology exercised in a loaded driver (plan/0005) + GoldLib hardware, not a build.
+- Lesson (cost me ~90 min): running build.sh with the DEFAULT wineprefix ($HERE/.winebuild)
+  drops a 1.1GB Wine prefix INTO the worktree; software --check then hangs in uninterruptible
+  D-state (p9_client_rpc) walking it over the /mnt/c 9P mount. Fix: gitignore adlibgold.sys +
+  .winebuild, and always build with WINEPREFIX pointed OUTSIDE the tree.
+- Byte-reproducible (WINEPREFIX outside the tree): adlibgold.sys sha256 28e5d165; re-pinned
+  host to 0014530, updated artifact + CI ARTIFACT_SHA. software --check GREEN.
+- Subsystem tally: PCM DSP, SP2 protocol, chip-timing, SP2 KS exposure — all done+tested.
+  Next: Control-mixer already exposes volume/tone/mute nodes (algtopo, pre-existing); own-FM
+  voice allocation (call/0014) and the stream resampler data path remain. External gates
+  unchanged: Windows CI cross-check lane, licensed deps-bundle hosting, GoldLib hardware.
