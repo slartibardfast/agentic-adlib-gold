@@ -595,3 +595,17 @@ points back.
   98SE for the call/0005 audible acceptance. tests/testtone_test.c verifies tone samples +
   WAV header in the Tests lane. Committed 6c844d7, re-pinned host.
 - (3) Operator: "ensure all github actions are green" — verifying after these pushes settle.
+
+## 2026-07-04 — All GitHub Actions confirmed green on the current HEAD
+
+- Verified every workflow's latest run is SUCCESS on the current branch (HEAD 6c844d7):
+  Tests @6c844d7, Reproducible Build @6c844d7, Reproducible Build (Windows) @6c844d7 (both
+  dispatched on HEAD to be unambiguous), Specs @075c06c, Timing @075c06c, Deploy mdBook
+  @075c06c (the last three unchanged by the testtone commit, so not re-triggered — their
+  green carries). The dual-host byte-identity proof still holds: both build lanes reproduce
+  b4c5d63c on HEAD.
+- The only failure runs in history are ORPHANED (on SHAs the message-rewrite force-pushes and
+  the build.sh exec-bit fix replaced): the pre-DDK_BUNDLE_URL empty-URL failures and the one
+  "Permission denied" exec-bit failure, all since fixed. None are in the current branch.
+- All three operator asks this round are complete: (1) remaining ordinal tells reworked,
+  (2) test tone moved to tools/testtone utility, (3) all Actions green.
