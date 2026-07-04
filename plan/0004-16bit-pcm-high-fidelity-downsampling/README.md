@@ -27,7 +27,7 @@ fixed-point resampler to its fidelity bound. This milestone references the spec 
 
 The spec is authored and live at the software pin: `allium check` and `allium analyse` are
 clean, and `spec/wave.obligations` dispositions all 31 `allium plan` obligations (the
-behavioural ones waived until this milestone lands the harness).
+behavioural ones waived until this milestone adds runnable tests).
 
 ## Acceptance
 
