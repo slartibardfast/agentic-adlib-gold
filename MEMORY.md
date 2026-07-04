@@ -830,3 +830,24 @@ OPERATIONAL FACTS:
   host-lifecycle, host-lint on PATH; tla2tools + the DDK bundle in $CLAUDE_JOB_DIR/tmp.
   Test lane: cc -O2 -Wall -Werror -I. tests/*_test.c (every static fn in a pure header must be
   exercised). Obligations (CI, non-strict): host-lifecycle obligations spec/X.allium --tests tests.
+
+## plan/0008 finding #21 landed: resampler block guard (2026-07-04)
+- DONE: driver @ 387e401 (artifact still 410dc88c byte-identical), host @ 6b7c6aa (re-pin).
+  `software --check` GREEN; wave allium check/analyse/plan + obligations clean (38 dispositioned);
+  wavesrc_test + mmastatus_test pass.
+- CORRECTION to the handoff note above: finding #21 is NOT an inRate>65535 step overflow. The
+  authoritative plan/0008 row ("Resampler wraps past 65536", "resample bounded to a safe block")
+  is about the block size: WaveSrcResample's Q16 phase accumulator climbs to ~inCount<<16, so a
+  block past 65536 SAMPLES (inCount) wraps the 32-bit accumulator and folds the read index back.
+  The driver never hits it (ValidateFormat caps source rate; streaming uses WaveSrcInterp per
+  sample), so this hardens the generically-callable pure helper.
+- FIX: WAVESRC_MAX_BLOCK=0x8000 caps the processed input per call so the accumulator provably
+  stays in 32 bits for any audio ratio (0x8000<<16 + step < 2^32). Locked behind a new
+  wave.allium rule ResampleBoundedBlock (added field Format.resample_bounded), discharged by
+  test:test_wavesrc_bound exercises=WaveSrcResample (over-large block stays bounded + in range).
+- WHY byte-identical: WaveSrcResample is a static helper the driver does not reference; with /Gy
+  + linker /OPT:REF it drops at link, so only the source pin advances (no hash update needed).
+  USEFUL: a source-only-touching-an-unreferenced-static change needs NO artifact-hash update in
+  the 3 places -- but always rebuild to CONFIRM byte-identity before skipping the hash bump.
+- NEXT (unchanged): remaining WAVE #3 channel-count/interleave, #11 rate dual-meaning, #20 DMA
+  validate; then FM/MIDI/timing/adapter/logging/gate.
