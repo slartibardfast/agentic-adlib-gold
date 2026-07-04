@@ -549,3 +549,26 @@ points back.
   machine, install via Device Manager (Add New Hardware -> the AdLib Gold), then play an 8-bit
   PCM WAV (sndPlaySound / Media Player) and confirm audible output; check sndvol shows the
   mixer + SP2 nodes. This is plan/0002's hardware-verification step.
+
+## 2026-07-04 — Reworded three skeleton commit messages for anti-slop compliance
+
+- Operator asked to rework the messages (only) of three skeleton commits that violated the
+  anti-slop rules with "Phase N:" ordinal-label tells: c9c3ca5 (Phase 2 topology tone),
+  7ac8313 (Phase 3 FM synth), f3c4c03 (Phase 4 WaveCyclic). host-lint flagged each as
+  `(phase)`; f3c4c03 also had a `→` decoration and a "from...to" false-range in its body.
+- Reworded all three to be host-lint clean (naming + prose): stripped the "Phase N:" prefix,
+  replaced "16→12-bit" with "to the 12-bit DAC", replaced the render-bridge "from...to" line
+  with a plain noun phrase. Preserved everything else verbatim (bodies, session-link trailers).
+- Rewrote history on a FRESH clone with git-filter-repo --message-callback (matched by old
+  subject), verified the HEAD tree was BYTE-IDENTICAL (b4a4c64c before and after) so only
+  messages changed and adlibgold.sys stays b4c5d63c. Force-pushed main (7b254b1 -> dc2dc24),
+  synced the materialized worktree (fetch + reset --hard), re-pinned host to dc2dc24.
+  software --check GREEN (artifact still verified at b4c5d63c).
+- SURFACED, not silently fixed (operator asked for exactly three): host-lint flags MORE
+  "Phase N" ordinals in commits the operator did NOT list — "Add MIDI UART miniport ... (Phase 5)",
+  two "... for Phase 1 skeleton" commits — plus "Chapter 6/7" tells in a few manual commits.
+  These remain until the operator decides whether to rework them too (another history rewrite).
+- Lesson: rewording old commit messages requires a full history rewrite + force-push (all
+  descendant SHAs change), so it invalidates the .host-software pin — always re-pin + re-sync
+  the worktree after. Do it on a fresh clone (git-filter-repo refuses a shared worktree), and
+  verify the tree SHA is unchanged to prove no content was touched.
