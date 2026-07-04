@@ -7,11 +7,21 @@
 
 [software "adlib_gold"]
 	url          = https://github.com/slartibardfast/adlib_gold.git
-	pin          = b5c6da6a2ea14d497aa0778b7123ef3e1a619908
+	pin          = 40ab2836cede33f4281880f58ee2046d609e2620
 	branch       = main
+	deploy       = main
+	deps-bundle  = https://github.com/slartibardfast/adlib_gold/releases/download/ddk-bundle/adlibgold-ddk-vc6-bundle.tar.gz f60af3fd65b53b67176499d9959adc1235cb1a1d3024c0adb6b7bd3c2fadb902
+
+# Dual-hosted (call/0009): one source pin, built on two hosts, byte-identical. Both
+# run the same VC6 binaries over identical C:\ paths, so the artifact hash matches.
+[build "adlib_gold" "linux"]
 	toolchain    = win2k-ddk-vc6
 	build        = ./build.sh
-	deploy       = main
 	attest-host  = linux
 	artifact     = adlibgold.sys b4c5d63c5cf10405f82eff6a210966501349d19dc6a4aaf364289b8df5751587
-	deps-bundle  = https://github.com/slartibardfast/adlib_gold/releases/download/ddk-bundle/adlibgold-ddk-vc6-bundle.tar.gz f60af3fd65b53b67176499d9959adc1235cb1a1d3024c0adb6b7bd3c2fadb902
+
+[build "adlib_gold" "windows"]
+	toolchain    = win2k-ddk-vc6
+	build        = build.bat
+	attest-host  = windows
+	artifact     = adlibgold.sys b4c5d63c5cf10405f82eff6a210966501349d19dc6a4aaf364289b8df5751587
