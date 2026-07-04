@@ -969,3 +969,51 @@ OPERATIONAL FACTS:
   bundle zip; alpha.1 retitled "(superseded ... INF did not install on 98SE)". OPEN QUESTION for
   the next test: if it lists+installs but gets no resources, revisit the FactDef/LogConfig (an
   agent flagged .FactDef as possibly a dead/unreferenced section for forced non-PnP resources).
+
+## COMPACTION HANDOFF (2026-07-04, third compact this task)
+- STATE, all committed/pushed/synced: driver adlib_gold @ d499dce (free artifact 4744eff6,
+  checked 2a5ca48c), host @ 77f3a07 (this handoff commit advances it). `software --check` GREEN.
+  Driver CI GREEN (reproducible-build x2 reproduce 4744eff6; Tests/Specs/Timing green). Host
+  mdBook: BUILD green; the DEPLOY step hit a transient "try again later" Pages race (two commits
+  deployed at once) -- re-run, NOT a content defect. Push as slartibardfast:
+  GH_TOKEN=$(gh auth token --user slartibardfast); git -c credential.helper='!gh auth git-credential' push origin main.
+- DONE THIS SESSION (continuing plan/0008 serial-by-subsystem remediation):
+  * plan/0008 finding #21 (resampler block guard) -- see its ## entry. Byte-identical artifact.
+  * plan/0008 finding #3 (channel-count / stereo) -- MANUAL-CORRECTED to MONO-ONLY + stereo
+    deferred (call/0016); artifact 4744eff6. See its ## entry.
+  * Hardware-test enablement (NOT plan/0008 findings, operator-driven): cut pre-releases on the
+    PUBLIC driver repo for the operator to download+install on real hardware ("GoldLib" = Gold
+    1000 equiv at defaults 388h/IRQ7/DMA1). Added a DBG=1 checked-build toggle to build.sh
+    (adlibgold.chk.sys, 2a5ca48c; free stays 4744eff6). Fixed the INF so a non-PnP card installs
+    on Win98SE (CRLF/ASCII; ALG1000 as HARDWARE id not compat-id; short section names; past
+    DriverVer). See the 3 ## entries above (checked build; Win98SE INF fixes; and the earlier
+    CRLF one) for the full recipes + the DDK-SB16-vs-truly-non-PnP root cause.
+- CURRENT RELEASE: v1.0.0-alpha.2 (prerelease, driver d499dce) at
+  https://github.com/slartibardfast/adlib_gold/releases/tag/v1.0.0-alpha.2 -- assets: free .sys,
+  checked .chk.sys, corrected .inf, bundle zip. alpha.1 retitled superseded. The operator is
+  mid hardware-test; awaiting whether alpha.2 INSTALLS (recognition fix) on the GoldLib.
+- NEXT ACTIONS (two tracks):
+  1. Hardware-test feedback loop (operator-driven, reactive): if alpha.2 lists+installs -> move
+     to playback/mixer tests + the 3 attested obligations (16-bit continuous playback+advancing
+     position; mixer-change-during-playback no FM corruption; long MIDI = still broken, smoke
+     only). If it lists but gets NO resources/yellow-bang -> revisit LogConfig/FactDef (an agent
+     flagged .FactDef as possibly a dead/unreferenced non-PnP forced-resource section).
+  2. Resume plan/0008 code remediation (serial by subsystem): remaining WAVE = #11 rate
+     dual-meaning (algwave.cpp ~975 NewStream vs SetFormat, resolve hw rate+step once; pure test),
+     #20 DMA channel validate like the IRQ path (algwave ~547 ConfigureDmaAndIrq; pure test).
+     Then FM (init state, pitch-bend A0-before-B0, guarded dtor, drum bank, non-paged init),
+     MIDI (tx TRQ flow control, non-paged GetInterruptSync, NEW spec/midi.allium), timing
+     (chiptiming.h EEPROM delay+settle, ChipTiming.tla case), adapter (mixer restore, StartDevice
+     non-fatal, ready-timeout, GetCardModel PAGED_CODE), logging (structural), gate.
+- KEY GOTCHAS learned this session (all detailed in ## entries above): (a) INF changes DON'T
+  affect adlibgold.sys (not compiled) -> no rebuild/hash-update; *.inf pinned CRLF via
+  .gitattributes + must be ASCII. (b) A source-only-touching-an-UNREFERENCED-static change
+  (finding #21) leaves the artifact byte-identical -> no hash bump, but ALWAYS rebuild to confirm.
+  (c) A code change that alters a compiled data table (finding #3 data range) DOES change the
+  artifact -> update the hash in 4 places (.host-software x2 + reproducible-build.yml +
+  reproducible-build-windows.yml) after rebuild. (d) checked build: DBG=1 alone silences
+  _DbgPrintF; must also raise /DDEBUG_LEVEL=DEBUGLVL_VERBOSE. (e) commit MESSAGES are naming- AND
+  prose-scanned: no "#N" (tracker-shape, BLOCKS), avoid "not X on its own" antithesis (warns).
+  (f) RECURRING TRAP: agents/plan text cite CLAUDE.md's stale "MMA base+00h..base+0Eh / 15 ports"
+  -- the MANUAL (ch07 reg 15h) says the audio section is 8 PORTS (388-38F); always trust the
+  manual over the plan for hardware facts.
