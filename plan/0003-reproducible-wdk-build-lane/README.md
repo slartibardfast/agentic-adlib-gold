@@ -46,6 +46,18 @@ default.
 - When the Wine lane reproduces byte-for-byte, the `repro-exempt = call/0002` line is
   dropped and `software --check` stays clean without it.
 
+## Execution status: the driver builds under Wine
+
+The driver builds end-to-end on this host: all six sources compile and link to a valid
+`adlibgold.sys` (native-subsystem i386 PE, ~44 KB), from the operator's Windows 2000 DDK
+and VC++6 media under Wine 6.0. Building the skeleton for the first time surfaced five real
+bugs, now fixed in the driver repo (see its "Bring up the driver" commit). The recipe: the
+DDK headers (mixed-case) plus a whitelist of VC98 CRT headers, the DDK/VC free-build
+compile flags, and a WDM link (`/driver /subsystem:native /entry:DriverEntry@8`). Remaining
+to a shippable build: refine the link `/SECTION` attributes (two benign LNK4078 merges), add
+the compiled resource, then make it deterministic and hermetic as the `deps-bundle`
+(`call/0008`) and wire the dual-hosted CI (`call/0007`).
+
 ## Execution status: the Wine build environment is proven
 
 The Linux/Wine lane is proven feasible on this host, from the operator's own media. The

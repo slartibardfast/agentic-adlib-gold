@@ -261,3 +261,26 @@ points back.
 - Honest status: the build environment is PROVEN working under Wine; the driver is not yet
   linked to adlibgold.sys. The remaining work is DDK-build-env setup + iteration, all doable
   on this host. Genuinely external still: the GoldLib hardware for sound verification.
+
+## 2026-07-04 — adlibgold.sys BUILDS: the driver compiles and links under Wine
+
+- Milestone: the complete Ad Lib Gold WDM driver builds from source on this host. All six
+  sources (common, adapter, algtopo, algwave, fmsynth, midi) compile with VC++6 cl.exe under
+  Wine, and link with the DDK link.exe to a valid adlibgold.sys — 44160 bytes, PE32
+  native-subsystem (driver) i386. Verified the PE header.
+- The skeleton had never been built; first build surfaced five real bugs, fixed in the
+  driver repo (commit "Bring up the driver: fix five skeleton bugs"): common.h missing
+  <kcom.h>; STD_CREATE_BODY -> STD_CREATE_BODY_ through the primary interface (ambiguous
+  IUnknown) in algwave/fmsynth/midi; PowerChangeState -> PowerChangeNotify in algwave/midi;
+  midi stream Init NTSTATUS vs STDMETHODIMP; midi friend for SynchronizedMidiWrite.
+- Build recipe (reproducible, staged under the job tmp): toolchain = DDK X86DBIN (build/link/
+  rc), NINC_DDK+NINC_SDK headers, X86DLIBF libs, NAUD_DDK (stdunk), + VC98 BIN/INCLUDE/LIB.
+  INCLUDE = DDK headers (all cases) + a VC98 CRT whitelist. Compile: cl /c /Zel /Gz /Gy /GF
+  /W3 /Od + the WDM defines. Link: link /driver /subsystem:native,5.00 /entry:DriverEntry@8
+  /merge:_PAGE=PAGE /merge:_TEXT=.text /nodefaultlib /release, the six objs + stdunk.lib
+  (built with lib.exe from stdunk.cpp) + portcls/libcntpr/ntoskrnl/hal.lib.
+- Remaining to shippable + reproducible: refine the link /SECTION attributes (two benign
+  LNK4078), compile the resource (rc needs a header), make it deterministic (pin PE
+  TimeDateStamp, call/0009), package the toolchain as the hermetic deps-bundle (call/0008),
+  and wire the dual-hosted CI (call/0007). Then the subsystem FEATURES (16-bit resampler,
+  SP2 nodes, own FM) on top of the now-building skeleton. Still external: GoldLib hardware.
