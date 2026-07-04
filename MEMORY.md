@@ -346,3 +346,27 @@ points back.
   the KS topology SP2 nodes (expose to sndvol), own-FM voice allocation (call/0014), the
   stream resampler data path, and calibrated chip-timing writes (call/0013). Then the Windows
   CI cross-check lane and the GoldLib hardware test (external).
+
+## 2026-07-04 — Calibrated chip-timing: the delay table is a pure, tested function (call/0013)
+
+- The OPL3 23us inter-write delay and the Control Chip regs-9-16h 5us delay were hardcoded
+  magic numbers (KeStallExecutionProcessor(23)/(5)) in common.cpp. Centralized the SDK timing
+  table into a pure ChipWriteDelayUs(chip, reg) in chiptiming.h (Control EEPROM reg 0x00 =
+  2500us, regs 0x04-0x08 = 450us, regs 0x09-0x16 = 5us; OPL3 = 23us; MMA/SP2 a short settle)
+  and drove the four OPL3 writes + the Control write path through it. 6/6 sources compile.
+- tests/chiptiming_test.c checks the table against the SDK figures — passes under cc -Werror,
+  runs in the Tests CI lane. The .tla spec (spec/ChipTiming.tla) proves the guard *pattern*
+  (a write only after MinDelay elapses); this table supplies the concrete constants it
+  enumerates. Microsecond stalls are CPU-speed-independent, so a fast host never outruns the
+  chips — the "correct on radically faster CPUs" half of the goal, now enforced in code.
+- Fixed a real CI gap: Tests' paths trigger only listed wavedsp.h, so a change to sp2.h or
+  chiptiming.h alone would not have run their tests — added both headers to the trigger. Also
+  gitignored the regenerable build outputs (adlibgold.sys, .winebuild/).
+- Rebuilt twice via build.sh: byte-identical (new artifact sha256 80f899c2...); updated
+  .host-software artifact + reproducible-build.yml ARTIFACT_SHA, re-pinned host to 8e641b5.
+  software --check GREEN (artifact verified at the new hash, deps-bundle pin matches, all
+  lanes present).
+- Subsystem tally: PCM DSP done+tested; SP2 protocol done+tested; chip-timing done+tested.
+  Next: the KS topology SP2 nodes (expose to sndvol) + Control-mixer nodes, own-FM voice
+  allocation (call/0014), the stream resampler data path. External gates unchanged: Windows
+  CI cross-check lane, licensed deps-bundle hosting, GoldLib hardware test.
