@@ -455,3 +455,28 @@ points back.
   Windows CI cross-check lane needs a Windows runner (attest-host=windows); (2) the operator
   must host the licensed DDK deps-bundle at the recorded URL; (3) GoldLib hardware execution
   proof on Windows 98SE. The Linux/Wine reproducible build lane is fully green.
+
+## 2026-07-04 — Dual-hosted Windows build lane wired (call/0009)
+
+- The reproducible build had only the Linux/Wine host. Added the second host:
+  build.bat (native-Windows build mirroring build.sh command-for-command over the SAME
+  C:\ paths, so the VC6 toolchain sees identical inputs) + reproducible-build-windows.yml
+  (windows-latest CI that stages the pinned deps-bundle, builds, and asserts the artifact
+  reproduces the SAME hash b4c5d63c as the Wine build — the byte-identity proof).
+- Converted .host-software to the multi-platform form the methodology supports: dropped the
+  flat build fields; added [build "adlib_gold" "linux"] and [build "adlib_gold" "windows"]
+  subsections, each with its own toolchain/build/attest-host/artifact (same hash). Verified
+  the tool accepts it: software --check shows `[linux] ... (verified)` and `[windows] ...
+  attested on windows (host is linux)` = SKIP off-host, not a failure. Exit 0, GREEN.
+- HONEST scope: the Windows lane is WIRED and asserts byte-identity, but it can only RUN
+  (and thus prove dual-host byte-identity) on GitHub's windows-latest with the licensed
+  deps-bundle hosted at DDK_BUNDLE_URL — both external gates the operator controls. Byte
+  identity is expected (identical VC6 binaries + identical C:\ paths + platform-independent
+  pe_normalize.py) but is confirmed only when the lane runs. I cannot run a Windows runner.
+- Status of the /goal: every SUBSYSTEM the goal names is implemented + unit-tested (PCM 8/16
+  incl. off-rate resampler, Control-Chip mixer, own-OPL3 FM synth, SP2 via KS/sndvol,
+  calibrated chip-timing), spec-first with allium + .tla specs and discharged obligations,
+  built reproducibly. Both build lanes are now DECLARED (Linux green; Windows wired). The
+  ONLY remaining gaps are external and unautomatable from here: (1) run the Windows CI lane
+  (needs the runner + hosted bundle); (2) GoldLib hardware execution proof on Win98SE. No
+  further in-repo work advances these — they need operator resources.
