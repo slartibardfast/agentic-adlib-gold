@@ -791,3 +791,42 @@ OPERATIONAL FACTS:
 - Remaining wave findings: #3 channel-count/interleave programming (stereo unhandled in
   ProgramMmaStart + FillFifo treats all as mono), #11 rate dual-meaning, #20 DMA validate,
   #21 resampler bound (wavesrc.h step overflow for inRate>65535). Then FM, MIDI, timing, adapter.
+
+## COMPACTION HANDOFF (2026-07-04, second compact this task)
+- STATE, all committed/pushed/synced/GREEN: driver adlib_gold @ 03dda9c (artifact
+  410dc88c), host @ 7319469 (pin=03dda9c). `software --check` GREEN. All 5 driver CI lanes
+  GREEN on 03dda9c (Reproducible Build + Windows both reproduce 410dc88c byte-identical;
+  Tests, Specs, Timing). Host mdBook build+deploy GREEN (Pages enabled this session).
+- DONE so far in plan/0008 (serial-by-subsystem, user's choice; NOT using the task-graph
+  receipt mechanism -- discharge via the obligations catalog + .obligations manifests):
+  1. critical bank switch (pre-compaction) 2. foundation MMA status decode (commit c56faa1)
+  3. wave 16-bit FIFO service loop #2 + reject full-duplex #12 + FIFO-overflow fix (03dda9c).
+  See the three ## entries above for the manual-grounded design details.
+- NEXT ACTION (resume here): remaining WAVE findings, then FM/MIDI/timing/adapter/logging/gate:
+  * #3 channel-count/interleave: ProgramMmaStart (algwave.cpp ~1379) sets MMA_PB_LEFT|RIGHT
+    unconditionally and never sets the reg-0Ch ILV bit; FillFifo treats all input as mono
+    (2 bytes/frame). Stereo 16-bit PIO needs software interleave (write L then R per frame,
+    4 bytes/frame) since ILV needs ENB=1/DMA. Extract a pure play/format register-config
+    helper + test; wave.allium routing rule. CROSS-CHECK manual ch07 line 846 (ILV) + 810 (L/R).
+  * #11 rate dual-meaning: m_SamplingFrequency written with two meanings across NewStream
+    (line ~975) and SetFormat; resolve the hw rate + resample step once. pure test.
+  * #20 DMA channel validate like the IRQ path (algwave ConfigureDmaAndIrq). pure test.
+  * #21 resampler bound: wavesrc.h WaveSrcResample `step=(inRate<<16)/outRate` overflows
+    32-bit for inRate>65535; guard/clamp. pure test (extend wavesrc_test).
+  * Then FM (init state, pitch-bend A0-before-B0, guarded dtor, drum bank, non-paged init,
+    read-length), MIDI (tx TRQ flow control, non-paged GetInterruptSync, new spec/midi.allium),
+    timing (chiptiming.h EEPROM delay+settle default, ChipTiming.tla case), adapter (mixer
+    restore status, StartDevice non-fatal, ready-timeout, GetCardModel PAGED_CODE), logging, gate.
+- OPERATIONAL FACTS (unchanged, see earlier entries): build =
+  BUNDLE=/home/david/.claude/jobs/4d7437a8/tmp/adlibgold-ddk-vc6-bundle.tar.gz
+  WINEPREFIX=<OUTSIDE-tree, e.g. $CLAUDE_JOB_DIR/tmp/ddkbuild1> ./build.sh (in
+  software/adlib_gold/main). After a source change update the artifact hash in THREE places:
+  .host-software (2 artifact= lines) + reproducible-build.yml + reproducible-build-windows.yml.
+  Push driver as slartibardfast: GH_TOKEN=$(gh auth token --user slartibardfast) then
+  git -c credential.helper='!gh auth git-credential' push origin main. Host auto-pushes on commit.
+  Commit trailer: Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>.
+  Commit-msg + diff-scoped naming hook: no Phase/Chapter/Section ordinals in messages; the
+  hook tolerates pre-existing tells in changed files (diff-scoped). Local tools: allium 3.2.4,
+  host-lifecycle, host-lint on PATH; tla2tools + the DDK bundle in $CLAUDE_JOB_DIR/tmp.
+  Test lane: cc -O2 -Wall -Werror -I. tests/*_test.c (every static fn in a pure header must be
+  exercised). Obligations (CI, non-strict): host-lifecycle obligations spec/X.allium --tests tests.
