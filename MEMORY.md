@@ -884,3 +884,30 @@ OPERATIONAL FACTS:
 - NEXT wave findings: #11 rate dual-meaning (algwave.cpp ~975 NewStream vs SetFormat resolve
   hw rate+step once; pure test), #20 DMA channel validate like the IRQ path (algwave ~547
   ConfigureDmaAndIrq; pure test). Then FM/MIDI/timing/adapter/logging/gate.
+
+## Hardware-validation pre-release cut + INF capture fix (2026-07-04)
+- TEST CARD: "GoldLib" is a Gold 1000 equivalent at DEFAULTS (I/O 388h, IRQ 7, DMA 1).
+  Confirmed valid: Gold 1000 supports IRQ {3,4,5,7} and DMA {1,2,3} (manual ch07 reg 13h);
+  INF FactDef (388-38F/7/1) and LC2 (the Gold 1000 logical config) match the card.
+- INF REVIEW (user asked to "carefully review .inf for accuracy"). One real defect FIXED:
+  the wave miniport HAS a capture pin (algwave.cpp Pin 0 PINNAME_CAPTURE, wired
+  Bridge->ADC->Capture) but adlibgold.inf registered the Wave interface only under
+  KSCATEGORY_AUDIO + KSCATEGORY_RENDER, NOT KSCATEGORY_CAPTURE -> the recording endpoint
+  was undiscoverable (would have failed the Sound Recorder test for an INF reason). Added
+  the KSCATEGORY_CAPTURE Wave line to both 9x [.Interfaces] and NT [.NT.Interfaces]
+  (the GUID string was already defined; MIDI already registered capture). INF-only change,
+  .sys UNCHANGED (4744eff6). Driver b203a5e, host e5b5667.
+  Minor notes (NOT changed, acceptable): Signature=$CHICAGO$ with NT sections is fine for
+  98SE-primary; LC1 (Gold 2000 profile) offers IRQ 10/11/12/15 + DMA 0 which a Gold 1000
+  can't use, harmless since manual install picks defaults.
+- PRE-RELEASE: https://github.com/slartibardfast/adlib_gold/releases/tag/v1.0.0-alpha.1
+  Tag v1.0.0-alpha.1 (annotated) at driver b203a5e, marked GitHub prerelease, assets
+  adlibgold.sys (sha256 4744eff6) + adlibgold.inf (corrected). Repo is PUBLIC; the .sys is
+  the user's own compiled driver (no MS DDK code embedded), safe to publish. No v* release
+  workflow exists, so the tag does not auto-build; attached the CI-verified reproducible
+  artifact directly. Driver version resource = 1.00.0000.1 (common.ver comes from the DDK
+  bundle, not the repo), hence the v1.0.0 base; "-alpha.1" signals mid-hardening.
+- PENDING for the test to feed back: the 3 attested obligations (16-bit continuous playback
+  + advancing position; mixer-change-during-playback no FM corruption; long MIDI no dropped
+  bytes -- last one NOT fixed yet so expect drops). NEXT code work still: wave #11 rate
+  dual-meaning, #20 DMA validate, then FM/MIDI/timing/adapter/logging/gate.
