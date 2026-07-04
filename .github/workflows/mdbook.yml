@@ -24,14 +24,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install mdBook
         run: |
           mkdir -p "$HOME/.local/bin"
           curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz -C "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Install host-lifecycle (pinned, the canonical publisher)
-        run: cargo install --git https://github.com/connollydavid/host-lifecycle --rev 46d481cd755302fcd5eaa47ddbbda814b3016567 --root "$HOME/.local"
+        run: cargo install --git https://github.com/connollydavid/host-lifecycle --rev 7e63d99e3a3a8afd9837288cb1b80654e1de55bf --root "$HOME/.local"
       - name: Generate the book (lifecycle order; every room)
         # `book` writes book.toml + mdBook/src; `--check` fails unless every room
         # with source renders a page. It reads the committed .host-software, so it

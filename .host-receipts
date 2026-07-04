@@ -9,3 +9,9 @@
     evidence = baseline at 565410a; upgrade lists 0 pending, 0 applied out of order
     tool = host-lifecycle@0.35.1
     recorded = 2026-07-03
+
+[receipt "upgrade"]
+    disposition = done
+    evidence = synced host-template to e8a9ae1; legacy stamp migrated to baseline 46a1fd2 (0 pending, 0 out of order); tool pins bumped to host-lint v0.12.1 and the host-validated commits; CI actions checkout v4 to v5
+    tool = host-lifecycle@0.36.0
+    recorded = 2026-07-04

@@ -45,3 +45,15 @@
     evidence = gate sweep green over the current rooms (5 personas, 3 milestones, 8 decisions): validate plan/ call/ ok; host-lint --all, prose, reconcile clean; book --check renders every room; mdbook build ok; commit-msg hook blocks a tell
     tool = host-lifecycle@0.35.1
     recorded = 2026-07-04
+
+[receipt "verify"]
+    disposition = done
+    evidence = gate sweep green after the upgrade: validate, host-lint --all, prose, reconcile, book --check all clean; software --check no hazard; the Where worktree re-materialized to the .bare layout
+    tool = host-lifecycle@0.36.0
+    recorded = 2026-07-04
+
+[receipt "publish"]
+    disposition = done
+    evidence = book renders every room (22 pages) after the upgrade; mdbook.yml on checkout v5 and host-lifecycle 7e63d99
+    tool = host-lifecycle@0.36.0
+    recorded = 2026-07-04
