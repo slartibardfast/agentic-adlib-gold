@@ -679,3 +679,53 @@ points back.
 - LESSON: even an adversarially-verified multi-agent review can invert a hardware finding when
   the verifiers lack the datasheet. The manual is the authority; cross-check every hardware
   finding against it before coding. This is why the goal mandates it.
+
+## 2026-07-04 — HANDOFF for compaction (read this first when resuming)
+
+CURRENT STATE (all committed + pushed + synced):
+- adlib_gold @ 160adbc; artifact adlibgold.sys = 4e1e816c (both build stanzas + BOTH
+  workflow ARTIFACT_SHA now correct). host @ its latest; pin = 160adbc. software --check GREEN.
+- Local CI note: the bank-switch commit (c7bd2eb) triggered the Windows lane while its
+  ARTIFACT_SHA was still stale (b4c5d63c) -> that run failed; the fix commit 160adbc corrects
+  the SHA but does NOT re-trigger (the .yml is not in the path filter). RESUME ACTION: dispatch
+  "Reproducible Build" and "Reproducible Build (Windows)" on main to get a green run on 160adbc:
+    GH_TOKEN=$(gh auth token --user slartibardfast) gh workflow run "Reproducible Build" --repo slartibardfast/adlib_gold --ref main
+    (and the Windows one). Then confirm all six lanes green on 160adbc.
+
+WHAT plan/0008 REMEDIATION HAS DONE:
+- CRITICAL done end-to-end: spec/BankAccess.tla (TLC-green) + the synchronized-accessor fix in
+  common.cpp (ControlRegWrite + WriteOPL3 array-1 -> CallSynchronizedRoutine wrapper + non-paged
+  locked body). Every shared base+2/3 write is now serialized vs the ISR.
+- plan/0008 (host prose milestone) has the full 26-finding remediation roadmap + a 27-row
+  obligation catalog. Finding #9 was CORRECTED against the manual (see the prior MEMORY entry
+  "Manual consultation corrects the review's ISR-status finding").
+
+NEXT STEP (the corrected coupled fix, manual-grounded, NOT yet started):
+- The 16-bit service loop + status handling + MIDI Tx flow control together. Design is in the
+  prior MEMORY entry: add ReadMMAStatus() = DIRECT read of base+4 (38CH is status on read, index
+  on write; base+5 is data); fix common.h MMA_STATUS_* constants (FIF0=0x01 playback ch0,
+  FIF1=0x02, RRQ=0x04, TRQ=0x08 tx-empty; the 0x01/0x02 labels are currently wrong); ISR reads
+  status once via ReadMMAStatus and gates ServiceWaveISR on FIF0 + ServiceMidiISR on RRQ, passing
+  the value; give the wave miniport an active-stream pointer (set NewStream, clear stream dtor)
+  and have ServiceWaveISR drive the stream FillFifo(render)/DrainFifo(capture); ServiceMidiISR
+  reads status via ReadMMAStatus (not ReadMMA(0)=Test reg); MIDI Tx polls TRQ=0x08. Fix the wrong
+  "auto-clear" comments (algwave.h:23, midi.h:27). Obligation: a pure status-bit-decode helper +
+  test, and the wave.allium liveness rule (attested). Then the remaining workstreams per the plan
+  catalog (stereo/channel programming, FM member init via fmvoice.h reset, spec/midi.allium,
+  paging fixes, error-handling, hot-path logging).
+
+OPERATIONAL FACTS:
+- Build (byte-repro): BUNDLE=/home/david/.claude/jobs/4d7437a8/tmp/ddk/adlibgold-ddk-vc6-bundle.tar.gz
+  WINEPREFIX=/home/david/.claude/jobs/4d7437a8/tmp/ddkbuild ./build.sh  (WINEPREFIX MUST be OUTSIDE
+  the worktree or software --check hangs on 9P; run twice, confirm identical). AFTER a source
+  change update the hash in THREE places: .host-software (artifact line), reproducible-build.yml
+  AND reproducible-build-windows.yml (both ARTIFACT_SHA). I missed the windows one once.
+- TLC: java -cp /home/david/.claude/jobs/4d7437a8/tmp/tla2tools.jar tlc2.TLC -deadlock -config
+  spec/X.cfg spec/X.tla   (specula.yml globs spec/*.tla).
+- Push adlib_gold as slartibardfast: GH_TOKEN=$(gh auth token --user slartibardfast); commit then
+  git -c credential.helper='!gh auth git-credential' push origin HEAD:main; then re-pin host
+  .host-software and commit there (host auto-pushes via its post-commit hook).
+- Commit trailer: Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>. host has
+  a commit-msg host-lint hook: NO "Phase N"/"Chapter N" ordinals or prose tropes in messages.
+- The driver is untestable on hardware here (no GoldLib + Win98SE); every fix is compile+repro
+  verified only. Cross-check EVERY hardware finding against manual/src/ch07-low-level.md.
