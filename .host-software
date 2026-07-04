@@ -7,7 +7,7 @@
 
 [software "adlib_gold"]
 	url          = https://github.com/slartibardfast/adlib_gold.git
-	pin          = 8c21e7e2a81d45701188de1331ebe1f506c321bc
+	pin          = 19067dc624111fe307a4bd512084e8520397ae30
 	branch       = main
 	toolchain    = win2k-ddk-vc6
 	build        = ./build.sh
