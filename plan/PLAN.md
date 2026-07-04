@@ -14,3 +14,4 @@ synth subsystems working on Windows 98SE, proven by repeatable dual-hosted build
 - [0005 Control Chip mixer as a topology filter](0005-control-chip-mixer-topology/README.md)
 - [0006 FM synth end-to-end under spec](0006-fm-synth-end-to-end/README.md)
 - [0007 complete driver, end-to-end](0007-complete-driver-end-to-end/README.md)
+- [0008 harden the driver for production and lock each fix behind a spec obligation](0008-harden-driver-for-production/README.md)
