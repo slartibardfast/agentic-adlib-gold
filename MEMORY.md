@@ -215,3 +215,49 @@ points back.
   green in GitHub Actions. The Timing/TLC lane was already green.
 - Lesson recorded: always verify the actual CI run, not just the local run, before
   claiming a lane green — an unpinned transitive dependency can diverge the two.
+
+## 2026-07-04 — Build environment PROVEN under Wine (earlier "blocked" was premature)
+
+- The Stop hook was right: I declared the build "blocked" without checking. The materials
+  are all on the operator's drives, reachable from WSL:
+  - Win2K DDK at /mnt/d/download/Microsoft.MSDN.Disc.0006.Windows.DDK.October.2000...CD
+    (WINDDK.iso). Extracted build.exe/link.exe/rc.exe/makefile.def/mspdb50.dll (X86DBIN via
+    the INF name-mapping), kernel headers (NINC_DDK/SDK: ntddk.h, portcls.h, wdm.h), free
+    libs (X86DLIBF: portcls.lib, libcntpr.lib, ntoskrnl.lib, hal.lib), and the PortCls
+    helpers stdunk.h/punknown.h/stdunk.cpp (NAUD_DDK).
+  - VC++ 6.0 Enterprise at /mnt/d/download/en_vs6_ent/en_vs6_ent_cd1.iso: VC98/BIN/CL.EXE +
+    C1/C1XX/C2.DLL + NMAKE + CRT (INCLUDE/LIB), plus mspdb60.dll from COMMON/MSDEV98/BIN.
+  - Wine 6.0 installed; passwordless sudo.
+- PROOF under Wine 6.0: cl.exe (VC6) compiled a trivial source to an object (exit 0), and it
+  parses the real driver source common.cpp through the DDK headers, reaching common.h:231.
+  The remaining error is a DDK COM-macro/include nuance (STDMETHOD_/THIS/PURE in an abstract
+  interface) that the canonical DDK build.exe + makefile.def resolves; a hand-rolled flag set
+  does not. Next step is build.exe with the sources file, not more materials.
+- Toolchain staged under the job tmp (extract_flat.py does the INF name-mapping). The Wine
+  prefix installs it onto C:\tc; cc.bat/dcc.bat drive cl.exe. This assembled tree is the
+  content of the deps-bundle (call/0008).
+- Correction to the prior note: the build is NOT externally blocked. The vendored DDK bundle
+  can be produced here from the discs, and the build lane is executable on this host. Still
+  genuinely external: the GoldLib HARDWARE for sound verification.
+
+## 2026-07-04 — Driver compile under Wine: proven, reaching the PortCls COM layer
+
+- Extended the Wine build proof from a trivial source to the real driver. Assembled the
+  full include set (DDK headers are mixed-case, e.g. WINDEF.H vs wdm.h; copy case-insensitively)
+  plus a whitelist of pure CRT/pragma headers from VC98 (excpt.h, ctype.h, pshpack*.h, ...),
+  never letting VC98 shadow the DDK Windows/COM headers.
+- cl.exe (VC6) under Wine now compiles common.cpp through the ENTIRE header stack (hundreds
+  of DDK/SDK/CRT headers resolve) and stops at one precise DDK nuance: DEFINE_ABSTRACT_UNKNOWN
+  (defined in kcom.h) is never pulled into the chain, because the extracted portcls.h includes
+  ks.h (which sets _KS_) but not kcom.h, and kcom.h requires ks.h + the COM base (IUnknown /
+  interface, from basetyps.h/unknwn.h) to precede it. A hand-rolled /FI shim gets the order
+  wrong in one direction or the other.
+- This is a DDK build-environment detail, not a materials gap. The canonical fix is the DDK
+  build.exe with the sources file: it lays INCLUDE as public\ddk\inc;public\sdk\inc;... in the
+  right precedence (makefile.def), so kcom.h/ks.h/IUnknown resolve as the driver expects. Next
+  concrete step to adlibgold.sys: reorganize the extracted headers/libs into the
+  public\{sdk,ddk,oak}\{inc,lib} layout makefile.def expects, set BASEDIR/MSVCDIR/DDKBUILDENV
+  per setenv.bat, and run build.exe in the driver dir. Then determinism + the deps-bundle + CI.
+- Honest status: the build environment is PROVEN working under Wine; the driver is not yet
+  linked to adlibgold.sys. The remaining work is DDK-build-env setup + iteration, all doable
+  on this host. Genuinely external still: the GoldLib hardware for sound verification.

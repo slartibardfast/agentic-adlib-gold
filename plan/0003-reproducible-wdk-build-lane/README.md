@@ -46,6 +46,18 @@ default.
 - When the Wine lane reproduces byte-for-byte, the `repro-exempt = call/0002` line is
   dropped and `software --check` stays clean without it.
 
+## Execution status: the Wine build environment is proven
+
+The Linux/Wine lane is proven feasible on this host, from the operator's own media. The
+Windows 2000 DDK (`build.exe`, `link.exe`, `rc.exe`, the kernel headers, and the PortCls
+import library) extracts from the DDK disc, and the Visual C++ 6.0 compiler (`cl.exe` with
+its C1, C1XX, and C2 back-ends) extracts from the VC6 Enterprise media. Under Wine 6.0
+`cl.exe` compiles a trivial source to an object, and it parses the real driver source
+`common.cpp` through the DDK headers. The remaining step to a complete compile is to drive
+it through the DDK `build.exe` with the `sources` file, so `makefile.def` sets the exact
+kernel COM-macro and include flags rather than a hand-rolled set. That assembled toolchain
+is then the content of the `deps-bundle` (`call/0008`).
+
 ## Needs from the operator
 
 Resolved:
