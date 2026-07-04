@@ -90,3 +90,16 @@ points back.
   98SE WDM driver and where to obtain it (the Win2K DDK is the anchor), and whether the
   Wine lane must be byte-identical or a successful Wine build with the Windows lane as
   the reproducibility anchor is enough.
+
+## 2026-07-04 — Auto-push enabled; pushing as slartibardfast
+
+- origin is slartibardfast/agentic-adlib-gold. The connollydavid gh account (the
+  default active one, and the owner of the methodology tool repos) has no push access
+  there; the slartibardfast account does. Switched the gh active account to
+  slartibardfast and set this repo's local credential helper to gh (`!gh auth
+  git-credential`), overriding the global `store` helper, so pushes authenticate as
+  slartibardfast.
+- Installed a `.git/hooks/post-commit` hook that auto-pushes each commit to origin
+  (operator requested). Local hooks are not cloned, so this applies on this machine
+  only, alongside the host-lint pre-commit and commit-msg hooks.
+- Pushed the adoption and planning work; origin/main is current.
