@@ -1017,3 +1017,31 @@ OPERATIONAL FACTS:
   (f) RECURRING TRAP: agents/plan text cite CLAUDE.md's stale "MMA base+00h..base+0Eh / 15 ports"
   -- the MANUAL (ch07 reg 15h) says the audio section is 8 PORTS (388-38F); always trust the
   manual over the plan for hardware facts.
+
+## Hardware test: INF recognition SOLVED; now a ring-0 page fault (exception 0E) (2026-07-04)
+- WIN: alpha.2 INF fix WORKED -- the device "showed up in the list" on Win98SE (recognition
+  solved). The user then hit a blue screen "fatal exception 0E at 0028:C0031B0A" on the driver's
+  FIRST hardware run. exception 0E = page fault; CS 0028 = ring-0 kernel; C0031B0A = VMM arena
+  => pageable code reached at raised IRQL (page fault illegal >= DISPATCH -> unrecoverable 0E).
+- FULL WRITE-UP committed for the host move: plan/0008-harden-driver-for-production/
+  page-fault-diagnosis.md (a54517e). A 3-agent audit ranked the causes (all open plan/0008
+  paging findings, same mechanism):
+  1. HIGH/deterministic (fires on MIDI OUTPUT): paged GetInterruptSync (common.cpp:442, still in
+     code_seg("PAGE")+PAGED_CODE) called from the non-paged DISPATCH-level MIDI Write (midi.cpp:1064).
+     plan/0008 fix (move to non-paged) was NEVER applied. FIX: move def below #pragma code_seg()
+     at common.cpp:504, drop PAGED_CODE.
+  2. MEDIUM (fires at LOAD/StartDevice -- the temporal match if crash was at install): FM Init
+     (fmsynth.cpp:958-967) holds m_SpinLock (raises to DISPATCH) while running its own pageable
+     Init body; residual fault = Init's trailing pages trimmed. FIX: retire the spinlock (nothing
+     races at Init; bank access already serialized via adapter interrupt-sync) or move Init non-paged.
+  3-5. LOW: wave Init leaves m_AdapterCommon/m_ServiceGroup/m_DmaChannel uninitialised -> dtor
+     Release() on garbage if early Init fails (zero them at top of Init); GetCardModel pageable w/o
+     PAGED_CODE (inert, no callers); back-pointer teardown clear not synchronized (narrow race).
+  REFUTED: the spurious-IRQ7-at-Connect ISR theory -- ISR is non-paged + NULL-guards all
+  back-pointers; m_pPortBase set before Connect and only used for port I/O.
+- NEXT (resume on new host): apply the 5 fixes (the FM/adapter PAGING CLUSTER) FIRST -- they
+  unblock every hardware test -- then the remaining wave findings (#11, #20), then MIDI/timing/
+  logging/gate. To pin WHICH 0E fired: get the crash TIMING (load=FM Init; MIDI-app=GetInterruptSync)
+  and/or run adlibgold.chk.sys under DebugView (PAGED_CODE assert names the exact routine).
+- RECOVERY told the user: if it crash-loops at boot, Safe Mode (F8) -> Device Manager -> remove
+  "Ad Lib Gold Sound Card" -> reboot.
