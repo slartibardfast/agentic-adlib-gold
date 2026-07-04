@@ -911,3 +911,28 @@ OPERATIONAL FACTS:
   + advancing position; mixer-change-during-playback no FM corruption; long MIDI no dropped
   bytes -- last one NOT fixed yet so expect drops). NEXT code work still: wave #11 rate
   dual-meaning, #20 DMA validate, then FM/MIDI/timing/adapter/logging/gate.
+
+## Checked/debug build added (DBG=1 toggle in build.sh) (2026-07-04)
+- WHAT: build.sh now has an optional DBG=1 toggle (driver 0b1570e, host 0900043). DBG=1
+  builds a checked diagnostic adlibgold.chk.sys (sha 2a5ca48c, byte-reproducible, ~68.6KB);
+  DBG unset builds the free deployable adlibgold.sys (still 4744eff6 -- verified unchanged).
+  Attached to the v1.0.0-alpha.1 pre-release alongside the free build.
+- NON-OBVIOUS RECIPE (from a 2-agent workflow reading the DDK bundle's ksdebug.h/wdm.h):
+  DBG=1 ALONE IS NOT ENOUGH. _DbgPrintF(lvl,...) only prints when `lvl <= DEBUG_VARIABLE`
+  (ksdebug.h:62), and DEBUG_VARIABLE defaults to DEBUGLVL_TERSE=1 (ksdebug.h:46), so all
+  DEBUGLVL_VERBOSE(2)/BLAB(3) traces are SILENTLY DROPPED. Must ALSO raise the threshold:
+  the toggle swaps /DNDEBUG -> `/DDBG=1 /DDEBUG_LEVEL=DEBUGLVL_VERBOSE`. Levels: BLAB=3
+  VERBOSE=2 TERSE=1 ERROR=0. Use =DEBUGLVL_BLAB to also get midi.cpp BLAB traces (7 sites).
+  STR_MODULENAME is defined per-.cpp already; no DEFINE_DEBUG_VARIABLE needed; keep the
+  compile-time DEBUG_LEVEL constant (do NOT use DEBUG_VARIABLE=<symbol>+KSDEBUG_INIT -- one
+  shared DEFS across all files -> multiply-defined/unresolved). /Od keeps it deterministic.
+- OPERATIONAL CAVEATS (told the operator): under DBG=1, ASSERT + PAGED_CODE (~55 sites) go
+  LIVE. On a bench with NO kernel debugger attached, a failed ASSERT/DbgBreakPoint can
+  hard-hang or bugcheck (RtlAssert). So the checked build needs DebugView (kernel capture)
+  or a serial kernel debugger (WinDbg/WDEB386). It WILL catch the pending paging bugs (paged
+  GetInterruptSync at DISPATCH, FM init paging, GetCardModel missing PAGED_CODE) at the
+  fault -- that's the diagnostic value, but expect more stops than the free build.
+- VERIFIED wired: free .sys has 0 DbgPrint imports + 0 trace strings; checked .sys imports
+  DbgPrint+RtlAssert and bakes in real traces (ProgramMmaStart, [CMiniportWaveCyclic..SetFormat]).
+- build.bat (Windows attest-host) left UNCHANGED (builds free only); checked build is a
+  Linux/build.sh diagnostic. Checked hash is NOT recorded in .host-software or re-pinned.
