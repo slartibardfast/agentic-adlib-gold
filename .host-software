@@ -7,6 +7,6 @@
 
 [software "adlib_gold"]
 	url          = https://github.com/slartibardfast/adlib_gold.git
-	pin          = 752b853ace4b7e341fb686d309e4e511bf7e04e2
+	pin          = a09946b1fb0a18f84ba51881831ce12feb0f518c
 	branch       = main
 	repro-exempt = call/0002
