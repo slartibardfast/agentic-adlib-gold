@@ -284,3 +284,24 @@ points back.
   TimeDateStamp, call/0009), package the toolchain as the hermetic deps-bundle (call/0008),
   and wire the dual-hosted CI (call/0007). Then the subsystem FEATURES (16-bit resampler,
   SP2 nodes, own FM) on top of the now-building skeleton. Still external: GoldLib hardware.
+
+## 2026-07-04 — Spec-driven feature: PCM DSP tested and wired; two obligations discharged
+
+- First subsystem-feature increment on the now-building driver. Added wavedsp.h: pure,
+  integer-only DSP (NearestSupportedRate = the nearest-hardware-rate downsampling decision,
+  call/0011; WaveDspDither = the TPDF 16->12-bit dither). The driver's DitherSample now
+  delegates to WaveDspDither, so the shipped code is the tested code. 6/6 still compile.
+- tests/wavedsp_test.c runs under any C compiler (gcc, no DDK/hardware) and passes; added a
+  Tests CI lane (adlib_gold .github/workflows/tests.yml) that builds -Werror and runs it.
+- Discharged wave.allium ResampleOffRate + DitherWideFormat from waived to
+  test:...exercises=... . Non-strict `obligations` passes (exit 0); the --strict-discharge
+  linker is Rust-`fn`-oriented so it advisory-warns on the C test name (known heuristic gap;
+  the CI running the test is the real backing). Remaining wave obligations stay waived
+  pending the on-hardware stream path.
+- Loaded adlib_gold's own CLAUDE.md (its dev plan): confirms Win2K DDK + VC6, Win98SE+,
+  integer-only/no-FP/no-exceptions/__stdcall, and the timing constraints (450us/5us/23us/
+  2.5ms) — validates call/0011/0012/0013 and the toolchain I assembled.
+- Still ahead: the full stream resampler data path, SP2 topology nodes (call/0012), own FM
+  voice allocation (call/0014), calibrated chip-timing writes (call/0013); reproducible
+  dual-hosted CI + hermetic deps-bundle (needs the licensed toolchain packaged); and the
+  GoldLib hardware test (external). Progressing one tested feature at a time.
