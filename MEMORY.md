@@ -503,3 +503,30 @@ points back.
   I may not redistribute. The Wine build reproduces b4c5d63c locally (proven, twice).
 - The other external gate (GoldLib hardware execution proof on Win98SE) likewise needs the
   physical card. No in-repo work advances either; both are operator-resource dependencies.
+
+## 2026-07-04 — DUAL-HOST BYTE-IDENTITY PROVEN ON GITHUB CI (call/0009)
+
+- Operator provided a PRIVATE repo (slartibardfast/ddk) to host the Microsoft-licensed DDK
+  bundle and asked me to create tokens via the API. Executed the full chain:
+  1. Committed the pinned bundle (sha f60af3fd) to slartibardfast/ddk (private) — license-safe,
+     not public redistribution.
+  2. Created a READ-ONLY deploy key on ddk via `gh api POST /repos/.../keys` (the only
+     API-creatable, least-privilege credential — PATs can't be minted via API). Stored the
+     private key as the DDK_DEPLOY_KEY secret on adlib_gold via `gh secret set`.
+  3. Rewired both reproducible-build workflows: replaced the empty `curl $DDK_BUNDLE_URL` with
+     `actions/checkout` of ddk using ssh-key: ${{ secrets.DDK_DEPLOY_KEY }}, then sha-verify +
+     build. Updated deps-bundle URL (.host-software + deps-bundle.lock) to the ddk repo.
+  4. Fixed a Linux-lane failure: build.sh was tracked 100644 → "Permission denied" (exit 126);
+     set the git exec bit (100755, blob unchanged so artifact unaffected).
+- RESULT (GitHub CI, commit 7b254b1, both conclusion=success):
+  - Reproducible Build (Windows, windows-latest): SUCCESS — native VC6 build log shows
+    `adlibgold.sys sha256: b4c5d63c...`, matching the recorded hash.
+  - Reproducible Build (Linux/Wine, ubuntu-latest): SUCCESS — sha256sum -c assertion passed.
+  - Both fetched the SAME pinned bundle from private storage via the deploy key, verified its
+    sha, and produced adlibgold.sys = b4c5d63c BYTE-FOR-BYTE.
+- The goal's build requirement is now PROVEN, not asserted: "dual-hosted, Linux/Wine build
+  byte-identical to the Windows CI build, built offline against a vendored, hash-pinned Win2K
+  DDK bundle" — machine-executed on GitHub. Tests/Specs/Timing lanes were already green.
+- The ONE remaining goal gate is GoldLib hardware execution proof on Win98SE (hear the 8-bit
+  tone). That needs the physical card; no CI or code substitutes for it. Everything reachable
+  from software + CI is now DONE and GREEN.
