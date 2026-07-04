@@ -1078,3 +1078,46 @@ OPERATIONAL FACTS:
 - NEXT: if install completes -> the 3 attested obligations (16-bit playback, mixer-during-play,
   MIDI). Remaining plan/0008 code: wave #11 rate, #20 DMA validate; then MIDI tx flow control +
   spec/midi.allium, timing, adapter, logging, gate.
+
+## Install crash root cause + complete audit: 7 findings fixed (2026-07-05)
+- INSTALL CRASH (0028:C0031B0A, .sys never copied, identical across binaries): NOT the driver.
+  Root cause via workflow = the 9x base section used a MALFORMED directive
+  AlsoInstall=ks.registration(ks.inf),wdmaudio.registration(wdmaudio.inf) -- the section(inf)
+  form is invalid setupx syntax and faults the WDM-audio VxD stack BEFORE CopyFiles. Fixed:
+  Include=ks.inf,wdmaudio.inf + Needs=KS.Registration,WDMAUDIO.Registration (the form the INF's
+  own .NT section already used). Shipped v1.0.0-alpha.4. LESSON: the earlier 5 paging fixes were
+  the WRONG LAYER -- the driver never loaded; always confirm the .sys actually reaches
+  System32\drivers before blaming driver code. AWAITING hardware confirm that install completes.
+- COMPLETE AUDIT (4-dim find + adversarial verify workflow) found 7 real defects beyond the
+  plan/0008 catalog, ALL FIXED (driver 4739368, artifact 5e75b737):
+  1. CRASH: FM stream Write (fmsynth.cpp) dereffed BufferAddress before any NULL/length check
+     (ASSERT compiles out in free build) -> NULL-buffer bugcheck. Guarded + read only Length bytes.
+  2. HIGH REGRESSION (from MY 16-bit FIFO fix): MMA base+4/5 index/data pair was UNSERIALIZED vs
+     the ISR (FillFifo/DrainFifo/ServiceMidiISR/SynchronizedMidiWrite now hit it at DIRQL). A
+     below-DIRQL WriteMMA could be preempted mid-pair -> write lands in wrong reg. Fixed with the
+     ControlRegWrite-style synchronized/locked split: public WriteMMA/ReadMMA go through
+     CallSynchronizedRoutine; raw WriteMMALocked/ReadMMALocked (now on IAdapterCommon) for the 4
+     ISR-context callers. GOTCHA (caught by adversarial verify): FillFifo is DUAL-CONTEXT (ISR +
+     PASSIVE pre-fill from ProgramMmaStart) -> takes an AtDirql flag to pick raw vs synchronized;
+     wholesale conversion had left the pre-fill racing. DrainFifo is ISR-only.
+  3. HIGH: ISR "is this ours" test masked ALL 4 status IRQ bits incl SCSI/telephone (0x0F) ->
+     claimed interrupts it can't clear. Now tests only SMP|FM (0x03).
+  4. HIGH: 8-bit DMA path set MMA_FMT_MSK (masked the FIFO IRQ) -> ServiceWaveISR never ran ->
+     Port->Notify never fired -> 8-bit render/capture frozen. Removed the mask (ISR gates the
+     PIO fill on m_16Bit, so 8-bit just Notifies).
+  5. MEDIUM: off-rate 16-bit mono CAPTURE accepted but not resampled (DrainFifo stores at hw rate)
+     -> wrong-speed recording. SetFormat now requires a discrete rate for capture (render still
+     resamples).
+  6. MEDIUM: MIDI receive overrun (OV) never cleared -> Rx stuck. ServiceMidiISR now pulses RCV_RST
+     (not TRS) + restores CTRL_DEFAULT on OV.
+  7. MEDIUM: topology miniport left AdapterCommon/SP2 state uninitialised -> dtor if-guard releases
+     garbage. Zeroed at Init top (mirrors the wave hardening).
+- NOTE: pre-existing "Phase 1/2" ordinal tells in algtopo.cpp comments (lines ~9,742) -- clean in
+  a hygiene pass. Also pre-existing lint warnings (1.0, 31.25) in fmsynth/midi/algwave are decimals
+  in comments, tolerated (not my diff).
+- STATE toward the goal: task1 (install crash) shipped, awaiting hw confirm. task2 (audit) DONE.
+  NEXT task3: remaining plan/0008 catalogue (wave #11 rate dual-meaning, #20 DMA validate; MIDI tx
+  flow control + spec/midi.allium; timing EEPROM; adapter mixer-restore/StartDevice-non-fatal/
+  ready-timeout; FM init-state/pitch-bend-order/guarded-dtor/drum-bank; logging). task4: features
+  (stereo per stereo-mma-reference.md, ADPCM, surround YM7128, power mgmt, EEPROM). Hardware-attested
+  obligations remain for the operator's GoldLib.
