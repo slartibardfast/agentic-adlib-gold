@@ -401,3 +401,26 @@ points back.
   Next: Control-mixer already exposes volume/tone/mute nodes (algtopo, pre-existing); own-FM
   voice allocation (call/0014) and the stream resampler data path remain. External gates
   unchanged: Windows CI cross-check lane, licensed deps-bundle hosting, GoldLib hardware.
+
+## 2026-07-04 — Own-OPL3 FM voice allocation made a pure, tested policy (call/0014)
+
+- The driver's own OPL3 FM synth (fmsynth.cpp, in-tree, Gold-specific bank switching + NEW
+  bit + STL/STR stereo — NOT the stock DDK synth) already allocated voices, but the policy
+  was embedded in the miniport (Opl3_FindEmptySlot/Opl3_FindFullSlot), untestable.
+- Extracted the decision into pure fmvoice.h: FmVoiceAllocate (free voice → oldest released
+  → oldest of same patch → globally oldest; always valid, so the 19th note steals and the
+  VoiceBudget stays <= 18), FmVoiceFind (the voice a note-off releases), FmVoiceIsDrum
+  (channel 9 = percussion). The two miniport finders now DELEGATE to it (fill 3 stack arrays
+  from m_Voice, call the pure fn) — identical policy, single tested source of truth.
+- tests/fmvoice_test.c drives a note-on/off simulator: free preference, 18-voice fill, 19th
+  steals, released-voice-stolen-first, VoiceBudget, drum classification, note-off release.
+  Discharges 9 fmsynth.allium obligations that were WAIVED "needs a build; call/0008" — the
+  build exists now, so those waivers were stale; replaced with test: dispositions.
+- Confirmed constants match spec: NUM2VOICES=18=voice_count, DRUMCHANNEL=9=drum_channel.
+- Byte-reproducible (WINEPREFIX outside the tree): adlibgold.sys sha256 2f884e0a; re-pinned
+  host to e055824, updated artifact + CI ARTIFACT_SHA. software --check GREEN.
+- Subsystem tally: PCM DSP, SP2 protocol+KS exposure, Control-mixer, chip-timing, own-OPL3
+  voice allocation — all done+tested. Remaining in-session buildable: the stream resampler
+  data path (call/0011, the 16-bit high-fidelity downsample to 12-bit; the nearest-rate map
+  + TPDF dither are already done in wavedsp.h, the polyphase FIR is not). External gates
+  unchanged: Windows CI cross-check lane, licensed deps-bundle hosting, GoldLib hardware.
