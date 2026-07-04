@@ -19,6 +19,16 @@ Build the one source pin two ways (`call/0007`), recorded as per-platform builds
 - a Windows CI lane (`attest-host = windows`) that attests on the real target and
   cross-checks the Wine build.
 
+Both lanes take their toolchain from one hash-pinned dependency bundle: the Windows
+2000 DDK, vendored as a `.zip` and recorded as `deps-bundle` (`call/0008`). The bundle
+is published as a versioned vendor release, the `pgs-release` pattern, and each lane
+downloads and verifies it, then builds offline under `--network none`.
+
+The first step is to produce that vendor release: package the DDK subset the driver
+needs, publish it as a tagged release asset where its Microsoft licence permits, record
+its sha256 in a committed `deps-bundle.lock`, and set `deps-bundle` in `.host-software`
+to the release URL and hash.
+
 ## Acceptance
 
 - `.host-software` records, per platform, the build recipe (the `toolchain` and the
@@ -31,7 +41,14 @@ Build the one source pin two ways (`call/0007`), recorded as per-platform builds
 
 ## Needs from the operator
 
-- The DDK or WDK version that builds a 98SE-capable WDM driver, and where to obtain it
-  (the Windows 2000 DDK is the anchor the `sources` file and the samples assume).
+Resolved:
+
+- The toolchain is the Windows 2000 DDK, vendored as a hash-pinned `.zip` deps-bundle
+  published as a vendor release (`call/0008`).
+
+Still open:
+
+- The vendor release itself: the packaged DDK `.zip`, its host location (subject to the
+  Microsoft licence, see `call/0008`), and the resulting `deps-bundle` URL and sha256.
 - Whether the Wine lane must reach a byte-identical artifact, or whether a successful
   Wine build with the Windows lane as the reproducibility anchor is enough.
