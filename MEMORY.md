@@ -936,3 +936,36 @@ OPERATIONAL FACTS:
   DbgPrint+RtlAssert and bakes in real traces (ProgramMmaStart, [CMiniportWaveCyclic..SetFormat]).
 - build.bat (Windows attest-host) left UNCHANGED (builds free only); checked build is a
   Linux/build.sh diagnostic. Checked hash is NOT recorded in .host-software or re-pinned.
+
+## Win98SE INF install fixes + v1.0.0-alpha.2 pre-release (2026-07-04)
+- SYMPTOM: alpha.1 driver "does not recognize" on Win98SE (non-PnP ISA Gold 1000, manual
+  Have-Disk install). Fixed via a 3-agent web-research workflow on Win98SE INF authoring,
+  cross-checked vs the DDK mssb16.inf and the hardware manual. Driver d499dce, host a4c669f.
+- ROOT CAUSE (primary blocker): the models line had ALG1000 in the COMPATIBLE-ID slot with an
+  EMPTY hardware-ID field (double comma: `AdLibGold_Device, , ALG1000`). This was copied from
+  DDK SB16 (`WDMPNPB003_Device, , *PNPB003`), but SB16 works ONLY because the ISA-PnP enumerator
+  reports *PNPB003. The Ad Lib Gold (1992) PREDATES ISA-PnP, so nothing enumerates it; a manual
+  install has no hardware ID to stamp on the root devnode -> "not recognized". FIX: single comma
+  `AdLibGold_Device, ALG1000` (ALG1000 as the HARDWARE ID). NOTE agent disagreement: one agent
+  said add `*ALG1000` (keep double comma) but that also relies on a nonexistent enumerator; the
+  2-agent consensus (hardware-ID form) is correct for a truly non-PnP card.
+- SECONDARY FIXES: (a) interface AddReg section names were 31-34 chars, past the Win9x setupx
+  section-name limit the INF ITSELF flagged (the "Topology too long -> Topo" comment); renamed
+  prefix `AdLibGold.Interface.` -> `ALG.I.` (30 occurrences). (b) DriverVer was future-dated
+  02/12/2026; set to past date + version bump 08/02/1999,1.00.0000.2 (user asked "up .1 ver").
+  (c) CRLF + ASCII (was LF + 2 em dashes) -- shipped earlier in a06e4a4.
+- REJECTED (verified against the MANUAL, do NOT apply): an agent said IOConfig should be 388-397
+  (15/16 ports) citing CLAUDE.md's stale "base+00h..base+0Eh" plan text. The MANUAL (ch07 reg 15h
+  AUDIO RELOCATE) says the audio section decodes 8 PORTS (388-38F), which common.h matches. So
+  IOConfig=388-38F is CORRECT. This is the SAME stale-plan-vs-manual trap as the earlier findings.
+- CONFIRMED-CORRECT (no change): $CHICAGO$ signature, Class=MEDIA + ClassGUID, .x86 SourceDisks,
+  dirid-10 DestinationDirs (10,system32\drivers), empty [ControlFlags], AlsoInstall(9x)/Include+
+  Needs(NT) split, FactDef/LogConfig. The double-comma idiom itself is valid (SB16 uses it) --
+  the bug was the EMPTY hardware-ID field for a card with no enumerator, not the comma.
+- INF authoring rule for this repo: *.inf pinned to CRLF via .gitattributes (`*.inf text
+  eol=crlf`); must stay pure ASCII. INF changes do NOT affect adlibgold.sys (not compiled), so
+  no hash update / no rebuild; .sys stays 4744eff6, .chk.sys 2a5ca48c.
+- RELEASE: v1.0.0-alpha.2 (prerelease) has the corrected INF + free .sys + checked .chk.sys +
+  bundle zip; alpha.1 retitled "(superseded ... INF did not install on 98SE)". OPEN QUESTION for
+  the next test: if it lists+installs but gets no resources, revisit the FactDef/LogConfig (an
+  agent flagged .FactDef as possibly a dead/unreferenced section for forced non-PnP resources).
