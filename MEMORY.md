@@ -1045,3 +1045,36 @@ OPERATIONAL FACTS:
   and/or run adlibgold.chk.sys under DebugView (PAGED_CODE assert names the exact routine).
 - RECOVERY told the user: if it crash-loops at boot, Safe Mode (F8) -> Device Manager -> remove
   "Ad Lib Gold Sound Card" -> reboot.
+
+## plan/0008 paging cluster FIXED + v1.0.0-alpha.3 (2026-07-04)
+- APPLIED the five paging fixes (driver 6f9339d code + 06329e6 DriverVer bump, host 0358851).
+  Free artifact 4744eff6 -> 888f082a (byte-reproducible); checked -> 9dcff64b. software --check
+  GREEN. The Win98SE exception-0E page fault (pageable code at raised IRQL) diagnosis is in
+  plan/0008/page-fault-diagnosis.md. User confirmed crash was "quite early, before install
+  finished" -> load path -> FM Init was the cause.
+- THE FIVE (all plan/0008 findings; details in commit 6f9339d):
+  1. fmsynth.cpp Init: removed KeAcquireSpinLock/KeReleaseSpinLock around the register clear +
+     Opl3_BoardReset (was a spinlock raising IRQL inside a code_seg("PAGE") body -> page fault on
+     its own trimmed pages). Now runs at PASSIVE. Relaxed SoundMidiSendFM/Opl3_BoardReset asserts
+     == -> <= DISPATCH_LEVEL. SAFE: fmsynth NEVER calls SetWave/MidiMiniport, so the ISR never
+     dispatches to FM; WriteOPL3 self-synchronizes bank-1 via CallSynchronizedRoutine.
+  2. common.cpp GetInterruptSync: moved from PAGE segment to non-paged (after code_seg() ~483),
+     dropped PAGED_CODE. The deterministic 0E: non-paged MIDI Write (midi.cpp:1064) called it at
+     DISPATCH.
+  3. common.cpp GetCardModel: added PAGED_CODE (pageable, zero callers today).
+  4. algwave.cpp wave Init: zero m_AdapterCommon/m_ServiceGroup/m_DmaChannel up front (dtor
+     releases them under if-guards; DDK placement-new doesn't zero pool).
+  5. common.cpp SetWaveMiniport/SetMidiMiniport: moved out-of-line; NULL clear now via
+     CallSynchronizedRoutine(SyncClearBackPointer); SET stays a direct atomic store.
+- VERIFICATION: adversarial workflow confirmed fixes 2/3/5 correct (no deadlock/re-entry; setters
+  only ever called at PASSIVE from Init/dtor, never ISR). Fix 1 + completeness cross-checked
+  inline: segment-scan finds ZERO spinlock-in-PAGE anywhere (FM Init was the only one); original
+  3-agent diagnosis found only these 3 paging sites. NOTE: 2 of 3 verify-agents glitched
+  (junk/retry-cap) so completeness leaned on the grep + the diagnosis workflow + the checked
+  build's live PAGED_CODE as the on-hardware safety net.
+- RELEASE v1.0.0-alpha.3 (prerelease): free .sys 888f082a + checked .chk.sys 9dcff64b + INF
+  (DriverVer bumped 1.00.0000.2 -> .3 so Windows installs over a cached copy) + zip. alpha.2
+  retitled superseded. Awaiting hardware retest: does install now COMPLETE?
+- NEXT: if install completes -> the 3 attested obligations (16-bit playback, mixer-during-play,
+  MIDI). Remaining plan/0008 code: wave #11 rate, #20 DMA validate; then MIDI tx flow control +
+  spec/midi.allium, timing, adapter, logging, gate.
