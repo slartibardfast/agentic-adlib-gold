@@ -205,3 +205,13 @@ points back.
   green all sit downstream of those. The spec-first half is the doable, live increment.
 - The MIDI UART miniport (midi.cpp) stays the plan/0007 lacuna (outside the named goal);
   its spec is deferred to that disposition.
+
+## 2026-07-04 — Caught and fixed a CI-only failure in the allium lane
+
+- Local pass did not mean CI pass. `cargo install allium-cli@3.2.4` in CI pulled a newer
+  transitive allium-parser 3.5.0 whose API broke the 3.2.4 build (E0061); my local copy
+  had compiled before that release. Fix: `--locked`, which uses the crate's published
+  Cargo.lock (allium-parser 3.2.4). Verified locally, then confirmed the Specs lane goes
+  green in GitHub Actions. The Timing/TLC lane was already green.
+- Lesson recorded: always verify the actual CI run, not just the local run, before
+  claiming a lane green — an unpinned transitive dependency can diverge the two.
