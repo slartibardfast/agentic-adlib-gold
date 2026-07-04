@@ -572,3 +572,26 @@ points back.
   descendant SHAs change), so it invalidates the .host-software pin — always re-pin + re-sync
   the worktree after. Do it on a fresh clone (git-filter-repo refuses a shared worktree), and
   verify the tree SHA is unchanged to prove no content was touched.
+
+## 2026-07-04 — Reworded the rest of the ordinal tells + test-tone moved to a utility
+
+- (1) Operator confirmed "yes" to reworking the remaining ordinal tells. A full per-commit
+  host-lint scan found 8 more with genuine tells: Phase 1/2/5 (f54df11, f79ecd4, 40de8e0,
+  3df9634 merge body) and Chapter 6/7 manual-label prefixes (ffcc776, 6c96c6f, c3ab0d4,
+  8a70521). Reworded all 8 to content (Phase dropped; Chapter 6 -> "Windows-DLLs", Chapter 7
+  -> plain "register map"/content), fixed an incidental ing-tail, host-lint clean. Second
+  message-only history rewrite (git-filter-repo, fresh clone): HEAD tree byte-identical
+  (b4a4c64c), force-pushed dc2dc24 -> 075c06c, synced worktree, re-pinned.
+- LEFT AS legitimate domain vocabulary (surfaced to operator, NOT reworded): product versions
+  (v1.2, Windows 3.1, MSVC 6.0, cl.exe 12.00), the PR ref (#4), and manual citations
+  (Appendix G, Chapter 4 cross-link, Section 11). Per the methodology these are declared, not
+  renamed. host-lint gives them warnings, not hard flags.
+- (2) Operator: "the test tone should not come directly from the driver; move to an exe
+  utility, reconsider scope." Correct architecture point: the driver plays app-streamed PCM;
+  it does not generate tones. DISCARDED the off-scope wavecfg.h driver-register experiment.
+  Added tools/testtone (tools/testtone.h pure integer generation + testtone.c main +
+  tools/README.md): writes a mono 8-bit PCM WAV square-wave tone (default 22050 Hz, a hardware
+  rate, so no kmixer resample). The operator plays the WAV THROUGH the installed driver on
+  98SE for the call/0005 audible acceptance. tests/testtone_test.c verifies tone samples +
+  WAV header in the Tests lane. Committed 6c844d7, re-pinned host.
+- (3) Operator: "ensure all github actions are green" — verifying after these pushes settle.
