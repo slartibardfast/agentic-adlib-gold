@@ -1492,3 +1492,29 @@ OPERATIONAL FACTS:
   if it is BOTH non-deterministic AND not semantically required; otherwise normalize its inputs and
   RECOMPUTE (checksum), never zero. We shipped a reproducible-but-arguably-broken artifact for
   months; the byte-repro gate passed because it only checks determinism, not loadability.
+
+## 2026-07-05 -- alpha.9 WORKS: driver loads and plays audio on Windows 2000 (Code 31 RESOLVED)
+
+- The operator's DebugView Log Boot trace (BX440.LOG, from the real Win2000 GoldLib) shows alpha.9
+  (valid checksum) FULLY WORKING, zero errors in 6109 lines: DriverEntry -> AddDevice ->
+  StartDevice (ports=1 IRQ=1 DMA=1) -> "detected Ad Lib Gold model 1" (options 0xD1) -> installed
+  ALL FOUR subdevices (Topology/mixer, FMSynth/OPL3, Wave/PCM, MIDI) -> ConfigureDmaAndIrq IRQ=7
+  DMA=1 reg13=0xB3 -> 6 PCM wave streams (322 SetState transitions) -> FM MIDI note-on/off through
+  the OPL3 (WriteMidiData 90/80 events). No failures, no bugchecks.
+- CONFIRMED: the ZERO PE CHECKSUM was the cause of the Win2000 Code 31. The research verdict was
+  "maybe" (ReactOS/WRK NT5.x loader accepts a zero); this proves Win2000 RTM DOES enforce the
+  driver checksum -- the RTM-specific behavior the research flagged as the residual uncertainty.
+  call/0024 (recompute checksum, reproducible+valid) resolved it. alpha.9 = eebb5fd / f2573b6c.
+- Card detection PASSED on real hardware, so the latent Code-10 detection wall (task #13) does not
+  bite here; it would only bite on a VM / absent card, so #13 stays a non-blocking robustness item.
+- The driver went from "never loads, Code 31" (98SE install crash + Win2000 Code 31, both traced to
+  the same unloadable image) to loading, detecting, and being driven by Windows to play PCM + FM
+  MIDI audio. Final HUMAN confirmation pending: does the operator HEAR sound (the trace proves
+  correct hardware programming; ears confirm actual output).
+- NEXT: (a) confirm audible audio + run the audio checklist on Win2000; (b) RETEST alpha.9 on 98SE
+  -- the valid checksum may also clear the 9x install crash, since that image was unloadable too;
+  (c) resume full-duplex + remaining features (task #10, #4).
+- KEY LESSON: the whole saga (98SE install BSOD, Win2000 Code 31, no trace) had ONE root under the
+  INF/resource red herrings: an unloadable image (zero checksum). The INF grounding (call/0021-0023)
+  was real work but could never have made an unloadable .sys run. When a driver never reaches
+  DriverEntry across MULTIPLE OSes, suspect the IMAGE (checksum, imports, PE validity) before the INF.
