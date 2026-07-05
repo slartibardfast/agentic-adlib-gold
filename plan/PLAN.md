@@ -15,3 +15,4 @@ synth subsystems working on Windows 98SE, proven by repeatable dual-hosted build
 - [0006 FM synth end-to-end under spec](0006-fm-synth-end-to-end/README.md)
 - [0007 complete driver, end-to-end](0007-complete-driver-end-to-end/README.md)
 - [0008 harden the driver for production and lock each fix behind a spec obligation](0008-harden-driver-for-production/README.md)
+- [0009 implement four-operator FM voices from the on-disk timbre bank](0009-implement-four-operator-fm/README.md)
