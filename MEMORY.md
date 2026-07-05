@@ -1541,3 +1541,38 @@ OPERATIONAL FACTS:
   (default 0xC0, floor 0x80). Decode EACH register against the SDK; never assume a shared scheme.
 - STATUS: awaiting operator retest of alpha.10 audio. The digital stages upstream were already
   trace-proven correct, so if the master now passes signal, sound should come out on both paths.
+
+## Win2000 STILL silent after alpha.10; TRUE cause = KS volume units (dB, not register byte) [2026-07-05]
+
+- alpha.10 was STILL silent, AND the operator reported the master/wave mixer sliders were physically
+  un-draggable, pinned at TOP/max. A volume default cannot explain a slider with no travel -> one
+  deeper cause. Workflow (Microsoft Learn + the bundled SB16 DDK topology sample + SDK), with an
+  adversarial refutation that FAILED to refute, CONFIRMED it.
+- ROOT (call/0026, amends call/0025): KSPROPERTY_AUDIO_VOLUMELEVEL is a signed LONG in 1/65536 dB
+  units (0x00010000 = 1 dB), NOT a raw register byte. PropertyHandler_Level (algtopo.cpp) read/wrote/
+  advertised it AS a raw byte. Two failures from one bug: (1) SILENCE - the audio stack SETs each
+  source volume to unity = KS LONG 0 on stream open; handler did (BYTE)0 = 0x00, clamped up to MinVal
+  = 0x80 = SILENT for FM (09/0A) and sampling/PCM (0B/0C) -> the STACK muted FM+PCM at their source
+  nodes, downstream of and AFTER ControlRegReset's audible defaults. THIS is why the alpha.10 master
+  fix couldn't help - the mute is inflicted later, on every stream. (2) STUCK SLIDERS - BASICSUPPORT
+  advertised raw byte span (128..255) as 1/65536 dB = ~0.002 dB wide -> zero travel; GET returning
+  the raw byte read as tiny-positive dB is why they pinned at TOP.
+- FIX (call/0026; alpha.11 = driver 0e5a6d8, tag v1.0.0-alpha.11, free artifact f3d893c4 -> 3f70ba6f,
+  chk 17979089; host re-pinned): PropertyHandler_Level now converts per node in INTEGER math (no
+  kernel FP). Two register families, two conversions: master 04/05 is a 2 dB/step dB CODE -> SB16-
+  style shifts; the linear mixing volumes 09-0F and record gain 02/03 -> precomputed const dB tables
+  (LinVolTab[128], RecGainTab[256], generated offline). GET RegToKsDb, SET KsDbToReg (nearest),
+  BASICSUPPORT advertises DbMin/DbMax/DbDelta. A unity SET now lands AUDIBLE (mixing vols -> 0xFF,
+  master -> 0xFC), not the silent floor. MUTE node still owns -inf/off. The Tone handler (bass/treble)
+  ALREADY converted in dB correctly and was NOT touched.
+- VERIFIED WITHOUT HARDWARE: re-derived the exact C integer logic offline and asserted the load-
+  bearing cases - unity SET audible on every path (master 0xFC, samp/FM 0xFF, recgain 0x1A); round-
+  trips accurate; every GET stays within the advertised range (no WDMAud violation). Compiles clean
+  under MSVC6. Free build changed (real fix); the checked-only VolSet/CtrlWr instrumentation is
+  free-transparent (proven: free hash returned to f3d893c4 before the fix was added).
+- LESSON: a KS property VALUE is in the property's KS unit (volume = 1/65536 dB), never the hardware
+  register's own encoding. Convert at the property boundary. The DDK SB16 topology miniport in
+  doc/wdm.txt is the canonical template for the dB<->register conversion and the BASICSUPPORT range.
+- STATUS: awaiting operator retest of alpha.11 (on USB at E:\adlibgold-v1.0.0-alpha.11\, free +
+  checked\). This is the confirmed root cause of the silence, not another guess. If still silent, the
+  checked build's CtrlWr/VolSet trace localizes it against ground truth.
