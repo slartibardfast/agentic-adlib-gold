@@ -5,6 +5,11 @@
 - Date: 2026-07-05
 - Supersedes: call/0021
 
+> Note: the A/B second-INF tactic in the Decision below is amended by `call/0023`, which ships
+> a single dual-platform INF (this record's grounded resource form) once the Windows 2000
+> grounding showed it installs on both 9x and Windows 2000. The resource-form decision here
+> (HARDWIRED LogConfig plus NORMAL FactDef, 388-397) remains in force.
+
 ## Context and Problem Statement
 
 `call/0021` fixed the Windows 98 SE install crash (`0028:C0031B0A`, at Have-Disk select,
