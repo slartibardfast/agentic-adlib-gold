@@ -1462,3 +1462,33 @@ OPERATIONAL FACTS:
   setupapi.log (copy line, Add Service, #E errors, "Device has problem: 0x1f"); regedit
   Services\adlibgold ImagePath/Type=1/Start=3 + file exists; Enum\Root\MEDIA Service value; class
   {4d36e96c...} UpperFilters/LowerFilters empty; SCM Event 7000 for adlibgold.
+
+## 2026-07-05 -- Win2000 Code 31 root: the image never loads; ZEROED PE CHECKSUM found (alpha.9)
+
+- Operator confirmed: checked build (78,336) at the ImagePath, kernel capture WORKS (fips lines
+  appeared, adlibgold silent), disable/enable still silent. setupapi.log = CLEAN install (file
+  copied to D:\WINNT\system32\drivers\adlibgold.sys, model matched, .NT section installed), ending
+  "Device has problem: 31". So the install is sound and the image NEVER reaches DriverEntry.
+- IMPORTANT: the operator's Windows 2000 is on D: (D:\WINNT), NOT C:. My earlier C:\WINNT paths
+  were wrong; the operator's Have-Disk reinstall from checked\ landed the file correctly on D:.
+- ROOT DEFECT FOUND (mine): the shipped adlibgold.sys had PE CheckSum = 0x00000000. build.sh's
+  pe_normalize.py ZEROED the checksum for byte-reproducibility (call/0009), discarding the
+  /release checksum a driver carries. Fixed in alpha.9 (call/0024): recompute the checksum LAST
+  over the normalized bytes (imagehlp CheckSumMappedFile). Double-build proves it stays
+  byte-reproducible AND valid. Artifact 92c480bc -> f2573b6c. Driver eebb5fd, tag v1.0.0-alpha.9,
+  host re-pinned. DriverVer -> 1.00.0000.9.
+- HONEST LIMIT (adversarial research, verdict "maybe"): a ZERO checksum may NOT actually block the
+  load -- ReactOS LdrVerifyImageMatchesChecksum and WRK MmCheckSystemImage ACCEPT a zero as
+  "not computed" and reject only a non-zero-but-WRONG value (hard bugcheck 0xC0000221, not a silent
+  Code 31). RTM-specific behavior unverified. So the checksum fix is a real defect removed + the
+  cheapest variable, NOT a confirmed cure. Do NOT over-claim it to the operator (I nearly did).
+- RULED OUT: the /align:0x80 sub-page alignment (all sections satisfy PointerToRawData==
+  VirtualAddress; header validator passes). Relocations present and fine.
+- NEXT SUSPECT if alpha.9 still Code 31: IMPORT RESOLUTION against the TARGET box's actual
+  ntoskrnl.exe/hal.dll/portcls.sys exports (a missing/renamed export -> MmLoadSystemImage fails
+  before DriverEntry, no trace = exact symptom). Provided Dependency Walker 2.1.3623 (subsystem
+  4.0, Win2000-safe) on the USB for the operator to open adlibgold.sys against the box's binaries.
+- LESSON: a reproducibility normalization must not zero a field the consumer requires. Zero it only
+  if it is BOTH non-deterministic AND not semantically required; otherwise normalize its inputs and
+  RECOMPUTE (checksum), never zero. We shipped a reproducible-but-arguably-broken artifact for
+  months; the byte-repro gate passed because it only checks determinism, not loadability.

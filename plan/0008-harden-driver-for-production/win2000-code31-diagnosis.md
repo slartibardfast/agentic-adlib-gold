@@ -163,6 +163,35 @@ capture helper before the driver at the next boot and shows the buffered output 
 is relaunched after the reboot. Confirm a local Administrator account and no `/DEBUG` on the
 boot line first, since either makes the capture silent for a benign reason.
 
+## Update: the image never loads, and a zeroed PE checksum was found
+
+The operator confirmed the checked build (78,336 bytes) at the service `ImagePath`, that kernel
+capture works (another driver's boot output appeared while `adlibgold` produced nothing), and
+that a Device Manager disable and enable still produced no `adlibgold` trace. The `setupapi.log`
+shows a clean install (the file copied to `D:\WINNT\system32\drivers\adlibgold.sys`, the model
+matched, the `.NT` section installed), ending in `Device has problem: 31`. So the install is
+sound and the image simply never reaches `DriverEntry`. (The Windows install is on `D:`, not
+`C:`; earlier `C:\WINNT` paths were wrong.)
+
+Inspecting the binary found the shipped `adlibgold.sys` carried a PE checksum of zero. The
+reproducible-build step (`pe_normalize.py`) zeroed the checksum for byte-determinism, discarding
+the checksum `link /release` sets so a driver carries one. This is a real build defect, fixed in
+`v1.0.0-alpha.9` by recomputing the checksum last over the normalized bytes (`call/0024`,
+reproducible and valid, artifact hash `92c480bc` becomes `f2573b6c`).
+
+Whether a zero checksum by itself blocks the Windows 2000 load is not confirmed: the documented
+NT loader sources accept a zero as a not-computed sentinel and reject only a non-zero-but-wrong
+value (as a hard bugcheck, not a silent Code 31). So the checksum is the cheapest variable to
+eliminate, not a proven cure. The `0x80` section alignment was ruled out by direct inspection
+(every section satisfies the sub-page invariant `PointerToRawData == VirtualAddress`).
+
+If Code 31 survives the valid-checksum `alpha.9` build, the checksum is exonerated and the next
+suspect is import resolution against the target machine's own `ntoskrnl.exe`, `hal.dll`, and
+`portcls.sys` export tables: a single missing or renamed export makes the loader fail before
+`DriverEntry` with no trace, matching the symptom. Dependency Walker on the target (opening
+`adlibgold.sys` against the machine's own binaries) is the decisive test and is provided on the
+diagnostic media.
+
 ## Citations
 
 1. https://learn.microsoft.com/en-us/windows-hardware/drivers/install/cm-prob-failed-add
