@@ -1200,3 +1200,46 @@ OPERATIONAL FACTS:
     says not wired on the card), telephone/PC-speaker/filter paths (reg 01h/10h/11h).
   Plan: implement the user-facing mixer gaps (record gain, source mux, stereo-wide) + wire or
   decide EEPROM, then decide full-duplex + 4-op + the internal set via call/. Then 100%.
+
+## 2026-07-05 -- feature push: EEPROM gate, record gain, 4-op re-plan, mdBook, provenance
+
+- OPERATOR CHOSE "implement everything now" for the remaining features (accepted untestable
+  risk), then gave specific guidance as work proceeded (below).
+- EEPROM (call/0019, driver 98a0ef0): SaveToEEPROM was dead code. Per operator guidance (prefer
+  registry to save wear; SaveToEEPROM off until 100% hw-tested; a registry entry defaulting off
+  0), wired it behind a registry DWORD "SaveToEEPROM" under the Settings key, default 0 (off).
+  Fires only from SaveMixerSettingsToRegistry (PASSIVE, hw mapped/powered -- the one safe context;
+  PowerChangeState runs at DISPATCH and SaveToEEPROM is paged+2.5ms = bugcheck). Registry stays
+  the store. RestoreFromEEPROM still uncalled (auto-load risks a bad 30yr EEPROM silencing boot).
+- RECORD GAIN (driver c18b897): topology was render-only (no capture path). Added capture path --
+  PIN_LINEIN_SOURCE bridge -> NODE_RECORD_GAIN (regs 02h/03h, reuses PropertyHandler_Level via a
+  NodeRegMap entry) -> PIN_WAVEIN_DEST, plus a physical connection topology(pin6)->wave capture
+  bridge(pin1) in adapter.cpp. Topology is INSTALL-FATAL; an adversarial pass verified all
+  enum/array/count alignment (pins=7, nodes=11, NodeRegMap=9, NODE_RECORD_GAIN=8) -- NO defects.
+  Byte-reproducible cefdef28. Recording level attested on hardware.
+- 4-OP FM RE-PLANNED (operator: "re-plan for 4-op FM, consider where the manual helps"): research
+  found 4-op is FEASIBLE. plan/0009 cut with four-op-reference.md (NEW bit 0x105 already set,
+  AD_CONNECTION 0x104, six channel pairs, algorithms already in Opl3_CalcVolume) + a 5-task build
+  sequence. KEY DATA: OPL3.BNK (manual/src/disks/program-disks-v1.00/installed/) has 471 timbres,
+  157 genuine 4-op (type byte 0x08 at record offset 25; records sequential 28 bytes at 0x34B0).
+  noteStruct ALREADY holds 4 operators (NUMOPS=4). STEP A DONE (driver 0cecb99): tools/bnkconv.c ->
+  fmbank4op.h (128-entry GM overlay: op bytes copied, connect split C0=connect&0x0F /
+  C3=(connect>>7)&1, bOp from type; 45/128 GM matched by keyword, attested). tests/bnkconv_test.c
+  passes. fmbank4op.h NOT yet #included by fmsynth (no binary change yet). REMAINING (plan/0009
+  #enable-voices..#note-off-volume): AD_CONNECTION=FOUR_OP_MASK (0x3F); a 4-op allocator over the
+  6 pairs {0,3}{1,4}{2,5}{9,12}{10,13}{11,14} (offsets = gw2OpOffset[prim]+gw2OpOffset[sec]);
+  Opl3_NoteOn/FMNote to program 4 ops + both C-regs + bMode=CNT_A|(CNT_B<<1); note-off/volume/pan
+  for pairs; add a b4Op flag to voiceStruct. Intricate untestable synth surgery -- do with a pure
+  fmvoice4op.h helper + adversarial review.
+- MDBOOK (host b7e2a00): deploy failed intermittently -- BUILD always OK, GitHub Pages DEPLOY
+  flaked ("try again later"), site stayed live. Path-filtered mdbook.yml to book-content rooms
+  (not pin bumps/MEMORY); next content deploy succeeded.
+- DEFENDER PROVENANCE: flagged .winebuild/.../syswow64/ncrypt.dll = a Wine BUILTIN from Ubuntu
+  libwine 6.0.3~repack-1 (dpkg -S), copied by wineboot -- benign, not our code. Re-confirmed:
+  deps-bundle sha f60af3fd matches lock+.host-software; toolchain authentic MS VC6 (CL.EXE
+  v12.00.8168); adlibgold.sys is our byte-repro build. Operator set a Defender exclusion on
+  .winebuild (gitignored scratch). Partial restore fix: rm -rf .winebuild + rebuild recreates it.
+- FEATURE STATE: done = install fix, audit, stereo, EEPROM-gate, record-gain, 4-op Step A.
+  Remaining = 4-op B-E (plan/0009), full-duplex (INF+2nd DMA), source-mux (awkward KS, likely
+  decide), control-chip stereo-wide (KSNODETYPE_STEREO_WIDE, redundant w/ SP2 node), internal/
+  niche decision (I/O reloc, timers, telephone).
