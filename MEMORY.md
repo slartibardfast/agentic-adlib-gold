@@ -1370,3 +1370,34 @@ OPERATIONAL FACTS:
   A quick confirming search "confirmed" a premise that a corpus + adversarial refutation then
   REFUTED. Ground a design claim with real examples and a deliberate attempt to refute it, not one
   page that agrees.
+
+## 2026-07-05 -- alpha.8: single dual-platform INF (9x + Win2000); Win2000 is the safe test path
+
+- A Win2000 grounding pass (host Workflow: 5 research + 3 adversarial agents + a LOCAL PE import
+  check; recorded in plan/0008/win2000-install-compatibility.md and call/0023) established that
+  the SAME adlibgold.sys + the grounded INF install and run on Windows 2000 AS-IS, no INF edit.
+  All 3 adversarial lenses tried to find a Win2000 blocker and none did.
+- WHY it works on Win2000: (a) Signature="$CHICAGO$" means "all Windows OS" per MS docs (NOT a
+  blocker; no "$Windows NT$" change needed), and Win2000 reads the .NT sections; (b) the binary is
+  native -- objdump/pefile show adlibgold.sys imports ONLY Win2000-era portcls.sys exports
+  (PcInitializeAdapterDriver, PcAddAdapterDevice, PcNewPort/Miniport, PcRegisterSubdevice,
+  PcRegisterPhysicalConnection, PcNewInterruptSync, ...), ntoskrnl, HAL; PE subsystem version 5.0
+  = Win2000; (c) real proof: C-Media CMI8338 WIN2K\CMEDIA.INF ships the identical
+  $CHICAGO$/MEDIA/ClassGUID/.NT/undecorated-Needs pattern; (d) 0028:C0031B0A is a 9x-ONLY ring-0
+  VxD/VMM fault -- NT has no VxDs and no CONFIGMG.VXD, installs via setupapi + PnP manager, and
+  bugchecks with KeBugCheckEx STOP codes, so that fault is architecturally impossible on Win2000.
+- THE REAL Win2000 RISK is a resource conflict, NOT the install: the single fixed config (388-397/
+  IRQ7/DMA1) has no fallback, so an occupied IRQ7 (LPT1/ECP) or DMA1 -> Device Manager Code 12.
+  Free IRQ7/DMA1/388h in BIOS (disable LPT1/ECP) before install. Also a click-through "Digital
+  Signature Not Found" (unsigned; Win2000 default Warn policy). CORRECTION to an earlier claim:
+  grounded vs forceconfig barely matters on Win2000 -- BOTH are single non-rebalanceable configs,
+  neither avoids Code 12; forceconfig is only more deterministic, not safer.
+- DECISION (call/0023, amends call/0022's A/B tactic): ship ONE dual-platform adlibgold.inf (9x
+  reads undecorated section, Win2000 reads .NT), drop the alpha.7 A/B second INF
+  (adlibgold-forceconfig.inf removed). DriverVer -> 1.00.0000.8. driver 57955ea, tag
+  v1.0.0-alpha.8, host pin 16c2798 -> 57955ea. adlibgold.sys UNCHANGED (92c480bc, byte-reproduced).
+- STRATEGY: Win2000 is now the PRIMARY validation path -- it exercises the whole driver (load,
+  subdevice registration, audio) independently of the 9x install crash, and fails with a readable
+  Device Manager code instead of a blue screen. Trade-off consciously accepted: dropping the A/B
+  gives up distinguishing HARDWIRED-LogConfig vs FORCECONFIG-FactDef on 98SE in one session, but
+  the captured crash-screen VxD name is a stronger 98SE diagnostic and Win2000 unblocks validation.
