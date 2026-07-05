@@ -1,8 +1,17 @@
 # The non-PnP install carries one forced boot config, not arbitratable LogConfigs
 
-- Status: accepted
+- Status: superseded by call/0022
 - Scope: software
 - Date: 2026-07-05
+
+> Superseded by `call/0022`. A web and DDK grounding pass
+> (`plan/0008-harden-driver-for-production/non-pnp-inf-install-grounding.md`) confirmed the
+> axis (the invariant address is fixed operating-system code, so the INF is the lever) but
+> refuted three claims below: that a non-PnP devnode *requires* a forced config, that
+> `FORCECONFIG` in `FactDef` is the right idiom (real Adlib-FM-at-388 INF files use
+> `HARDWIRED` in a `LogConfig`), and that the configuration manager is the confirmed faulting
+> module (the crash-screen module name was never captured). `call/0022` records the grounded
+> fix. The reasoning below is kept as the record of what was decided and why it was corrected.
 
 ## Context and Problem Statement
 
