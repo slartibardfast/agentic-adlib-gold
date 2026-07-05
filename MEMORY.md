@@ -1401,3 +1401,35 @@ OPERATIONAL FACTS:
   Device Manager code instead of a blue screen. Trade-off consciously accepted: dropping the A/B
   gives up distinguishing HARDWIRED-LogConfig vs FORCECONFIG-FactDef on 98SE in one session, but
   the captured crash-screen VxD name is a stronger 98SE diagnostic and Win2000 unblocks validation.
+
+## 2026-07-05 -- Win2000 result: Code 31 (CM_PROB_FAILED_ADD). Diagnosed, checked build shipped
+
+- alpha.8 on Win2000 installed and assigned resources cleanly (NOT Code 12), then Device Manager
+  showed Code 31. This is FORWARD PROGRESS: past the 9x crash, past install, past resources. The
+  driver binary is sound (imports verified Win2000-era; DriverEntry/AddDevice textbook).
+- Code 31 = CM_PROB_FAILED_ADD (0x1F): AddDevice returned an error, OR no service listed, OR a
+  dependent/filter driver failed to load. CRITICAL Win2000 caveat (adversarial catch): Codes 37
+  (FAILED_DRIVER_ENTRY) and 39 (DRIVER_FAILED_LOAD) DO NOT EXIST on Win2000 (XP+ only; KB 125174
+  lists codes 1-33). So on Win2000, Code 31 is a CATCH-ALL that ALSO covers image-load / unresolved
+  -import / DriverEntry failures -- do NOT assume the image loaded just because it is 31 (a real
+  Win2000 case: missing kernel export _aulldvrm -> Code 31, found via Dependency Walker). Full
+  grounded diagnosis: plan/0008/win2000-code31-diagnosis.md (5 research + 3 adversarial passes; two
+  refuted and corrected the first-pass reading).
+- RANKED causes (cheap-first): (1) registry/service-binding on the manual ROOT devnode (no service
+  / duplicate devnode from repeated Have-Disk); (2) stale MEDIA-class UpperFilters/LowerFilters from
+  a prior sound card poisoning the stack; (3) image-load/unresolved-import vs THIS box's portcls.sys;
+  (4) PcAddAdapterDevice internal FDO-create failure; (5) driver AddDevice -- low (no failure path).
+- LATENT next wall (do NOT fix yet): CAdapterCommon::Init (common.cpp:303-324) returns
+  STATUS_DEVICE_DOES_NOT_EXIST if the card does not answer at 388h -> that is Code 10 on StartDevice,
+  a SEPARATE later phase, and it bites especially on a VM / box without the real card. Make detection
+  non-fatal only IF/WHEN the diagnostic shows Code 10.
+- DIAGNOSTIC shipped (attached to the alpha.8 release as adlibgold-code31-diagnostic.zip): the DBG=1
+  CHECKED build adlibgold.chk.sys (66aafca0; free .sys unchanged at 92c480bc) + DIAGNOSTIC-code31.txt
+  with the prioritized operator steps: Dependency Walker import screen, registry/duplicate/filter
+  check, then checked build + DebugView (ONE sink; Win2000-compatible DebugView; NOT alongside a KD)
+  with the corrected bisection legend (nothing prints=load fail; DriverEntry+AddDevice no
+  StartDevice=PcAddAdapterDevice fail; DriverEntry only=upper-filter fail; StartDevice prints=Code 10
+  detection wall). Drop the event 7000/7026 corroborator (demand-start PnP driver, not SCM-managed).
+- LESSON: adversarial verification earns its keep -- the first-pass diagnosis "ruled out" the load
+  class by contrasting Code 31 against codes 37/39, which DON'T EXIST on the target OS. Always check
+  that a diagnostic distinction actually exists on the specific OS version before relying on it.
