@@ -1302,3 +1302,40 @@ OPERATIONAL FACTS:
   adapter allocates 2nd DMA, dual-stream wave miniport, reg 14h + MMA ch1 for capture, ISR
   services both). Do it additively (opt-in, default single-DMA path unchanged) + adversarial
   review. Also: fold any GoldLib hardware-test findings back in.
+
+## 2026-07-05 -- alpha.6: real install-crash fix (forced non-PnP boot config, call/0021)
+
+- ROOT CAUSE FOUND. 0028:C0031B0A was NOT driver code and NOT the earlier guesses (paging,
+  AlsoInstall form, model matrix). DECISIVE evidence: the address is byte-identical across
+  alpha.1-5 (five completely different .sys binaries) -> a fixed Windows routine, not relocating
+  driver code. OPERATOR GROUND TRUTH (the clincher): the crash fires the instant the driver is
+  SELECTED in the Have-Disk wizard, BEFORE any file copy, and adlibgold.sys is never written to
+  disk. So it is CONFIGMG (the 9x config manager, ring-0) faulting as it builds the logical-config
+  records for the manually-created non-PnP ROOT devnode -- not arbitration (that is the
+  wizard-finish step), not CopyFiles, not driver load.
+- WHY: a non-PnP card (no ISA-PnP enumerator) installs as a manual root devnode, which REQUIRES a
+  FORCED boot config. Our INF offered only arbitratable NORMAL-priority LogConfigs (ALG.LC1/LC2)
+  plus a NORMAL FactDef, so CONFIGMG had no forced boot config to instantiate and faulted. The DDK
+  SB16 sample NEVER validated this path -- its devnode is auto-created by the ISA-PnP enumerator
+  matching *PNPB003, so "SB16 installs fine" proved nothing about a manual non-PnP select.
+- CORRECTIONS to earlier wrong diagnoses: (a) plan/0008/page-fault-diagnosis.md ("driver pageable
+  code at raised IRQL") is DISPROVEN -- the crash persisted through every paging fix and predates
+  the .sys ever existing. (b) alpha.4's premise that AlsoInstall=section(inf) "is not valid
+  setupx" is FALSE -- the DDK SB16 AND Andrew Hoffman's WDMHDA 98SE audio driver both use that
+  exact form. That change never caused nor fixed the crash.
+- FIX (INF-only; driver 8b8caa0, tag v1.0.0-alpha.6): FactDef -> ConfigPriority=FORCECONFIG with
+  the GoldLib's jumpered 388h/IRQ7/DMA1; DROP ALG.LC1/LC2; revert the 9x section to AlsoInstall
+  (Include/Needs stays in the .NT section). DriverVer -> 1.00.0000.6. adlibgold.sys UNCHANGED and
+  byte-reproduced identical (92c480bc) -- the INF is not a build input. Host pin 1bf64d3 ->
+  8b8caa0, artifact still 92c480bc.
+- Independent web research into the MS INF reference confirmed the mechanism: a manually-installed
+  non-PnP device MUST carry a forced FactDef boot config; FORCECONFIG is the valid token
+  (FORCEDCONFIG does not exist). The per-model Gold 1000/2000 IRQ/DMA choices return as arbitrated
+  LogConfigs layered on the forced config AFTER the base install is confirmed on hardware.
+- FALLBACK if alpha.6 still crashes at the same address: pure bisect -- strip the FactDef too (no
+  forced resources) to prove whether CONFIGMG faults on ANY config record for this root devnode or
+  only the arbitratable ones. If any-config faults, the manual-root-devnode approach itself is
+  wrong for 98SE and the detected path (IoReportDetectedDevice root-enumeration) is required.
+- KEY LESSON: an INVARIANT crash address across changing binaries = a fixed system routine, not
+  your code; stop looking in the driver. And a "known-good" reference validates only the paths it
+  actually exercises -- SB16's PnP enumeration never covered our manual non-PnP select.
