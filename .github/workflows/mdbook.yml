@@ -9,6 +9,18 @@ name: mdBook
 on:
   push:
     branches: [main]
+    # Only rebuild the site when a book-rendered room actually changes. A pin bump
+    # (.host-software) or a MEMORY.md entry does not change the book, so it should not
+    # spend a GitHub Pages deployment -- fewer deploys means fewer chances to hit a
+    # transient Pages backend "try again later" failure, and the live site is unaffected.
+    paths:
+      - 'call/**'
+      - 'plan/**'
+      - 'cast/**'
+      - 'CLAUDE.md'
+      - 'STRUCTURE.md'
+      - 'README.md'
+      - '.github/workflows/mdbook.yml'
   workflow_dispatch:
 
 permissions:
