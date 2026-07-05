@@ -1,6 +1,6 @@
 # Digital-audio output is mono until a hardware-verified dual-channel path exists
 
-- Status: accepted
+- Status: superseded by call/0017
 - Scope: software
 - Date: 2026-07-04
 
