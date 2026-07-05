@@ -1121,3 +1121,24 @@ OPERATIONAL FACTS:
   ready-timeout; FM init-state/pitch-bend-order/guarded-dtor/drum-bank; logging). task4: features
   (stereo per stereo-mma-reference.md, ADPCM, surround YM7128, power mgmt, EEPROM). Hardware-attested
   obligations remain for the operator's GoldLib.
+
+## Task #3 (all plan/0008 hardening) COMPLETE (2026-07-05)
+- Driver e65cb7d, host 6418df5, artifact df76c0b9, gate green, all reproducible.
+- Every plan/0008 catalogue finding is now addressed (across ~25 commits this session):
+  crash+audit (7 findings), FM hardening (fresh state, pitch-bend A0/B0, guarded dtor,
+  m_fStreamExists), DMA validate (#20 + WaveDmaSelectBits test), MIDI tx flow control +
+  NEW spec/midi.allium (MidiTxCount/MidiRingFits + midififo_test), adapter (non-fatal FM
+  install, mixer-restore status, ready-poll timeout), timing (every control write settles),
+  EEPROM save full-cycle wait, logging (MIDI bytes-written + no unconditional ISR print),
+  wave #11 (rate resolved once in NewStream like SetFormat), dead gbPercMap removed,
+  ordinal-tell hygiene (Phase/Chapter comments reworded).
+- ATTESTED-on-hardware obligations still open (need the GoldLib): 16-bit continuous
+  playback+position, mixer-during-playback no FM corruption, long MIDI no drops, FM drum
+  bank sounds right, and the alpha.4 INSTALL completing.
+- LEXICON note: "phase" (DSP accumulator, wavesrc.h) and "level" (audio, sp2modes.h) are
+  legit domain vocab the full host-lint scan flags; could be LEXICON-declared later.
+- FEATURE STATUS (task #4): power mgmt, EEPROM persistence, surround/SP2 (YM7128) are
+  ALREADY IMPLEMENTED. Remaining features: 16-bit STEREO (call/0016 deferred it; implement
+  per plan/0008/stereo-mma-reference.md -- DMA-raw both-channel ILV path; needs channel-1
+  MMA access which doesn't exist yet + a call/ superseding 0016) and ADPCM (not implemented).
+  Both are large and UNTESTABLE here -- hardware behavior lands attested.
