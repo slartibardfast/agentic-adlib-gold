@@ -1339,3 +1339,34 @@ OPERATIONAL FACTS:
 - KEY LESSON: an INVARIANT crash address across changing binaries = a fixed system routine, not
   your code; stop looking in the driver. And a "known-good" reference validates only the paths it
   actually exercises -- SB16's PnP enumeration never covered our manual non-PnP select.
+
+## 2026-07-05 -- alpha.7: grounded the non-PnP install; corrected alpha.6's over-claims (call/0022)
+
+- A web+DDK grounding pass (host Workflow: 7 research + 3 adversarial agents; recorded in
+  plan/0008/non-pnp-inf-install-grounding.md and call/0022, which supersedes call/0021) re-examined
+  the alpha.6 fix and CORRECTS the entry directly above. Verdict "partially correct": right axis,
+  wrong idiom, refuted premise, over-stated cause.
+- CORRECTION (a) -- refutes the entry above: a non-PnP devnode does NOT "MUST carry a forced FactDef
+  boot config". No Microsoft source says so. Real Win98SE non-PnP INFs (SSMCIRDA.INF, MSPORTS.INF)
+  install with arbitratable HARDRECONFIG/NORMAL LogConfigs and NO FactDef at all. The alpha.6
+  "independent web research confirmed the mechanism" note was too shallow -- one confirming page is
+  not grounding.
+- CORRECTION (b): the idiom for an Adlib/OPL FM at base 388h is Win95 MIDI.INF -- ConfigPriority=
+  HARDWIRED in a LogConfig plus a NORMAL FactDef, binding standard *PNP ids (*PNPB005 OPL2,
+  *PNPB020 OPL3, *PNPB006 MPU401). NO real Win9x sound INF uses FORCECONFIG anywhere. (*PNPB003 is
+  Sound Blaster, not Adlib.)
+- CORRECTION (c): CONFIGMG is a HYPOTHESIS, not fact. The invariant address proves fixed ring-0 OS
+  code (so the INF is the lever), but the Win9x crash screen NAMES the faulting VxD ("in VXD
+  NAME(nn)+offset") and that name was never captured -- it could be VMM. Capturing that line is the
+  single most valuable next diagnostic.
+- SEPARATE DEFECT: alpha.6's IOConfig=388-38F (8 ports) UNDER-CLAIMS the card. The MMA (YMZ263) runs
+  to base+0Eh, so the real footprint is 388-397 (16 ports). Fixed in alpha.7.
+- FIX (INF-only; driver 16c2798, tag v1.0.0-alpha.7; host pin 8b8caa0 -> 16c2798): adlibgold.inf now
+  declares a HARDWIRED LogConfig (ALG.LC0) plus a NORMAL FactDef at 388-397, DriverVer 1.00.0000.7.
+  adlibgold.sys UNCHANGED (92c480bc, byte-reproduced). A/B: adlibgold-forceconfig.inf ships the
+  corrected-range FORCECONFIG form so ONE hardware session distinguishes HARDWIRED-LogConfig from
+  FORCECONFIG-FactDef.
+- KEY LESSON: the invariant-address lesson stands; the "forced-config is required" lesson did not.
+  A quick confirming search "confirmed" a premise that a corpus + adversarial refutation then
+  REFUTED. Ground a design claim with real examples and a deliberate attempt to refute it, not one
+  page that agrees.
