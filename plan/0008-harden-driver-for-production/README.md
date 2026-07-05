@@ -100,6 +100,15 @@ channel count. Extract that mapping into a pure, unit-tested register-config hel
 obligation is a `wave.allium` rule that a format's channel count determines the
 programmed routing, discharged by the helper's `test:`.
 
+Done in two steps. First, mono-only: consulting the manual showed stereo needs the
+dual-channel interleaved DMA path and channel-1 access the driver lacked, so the pin
+advertised mono and the helper's stereo mapping was defined but unreached (`call/0016`).
+Then, full stereo: a register-by-register trace of the Miles AIL driver, checked against
+the manual (`stereo-mma-reference.md`), resolved the channel-1 addressing. Stereo now runs
+over the DMA interleave path with both channels' play and format registers programmed,
+interleave set on channel 0, and channel-1 access via `WriteMMA1` (`call/0017`, which
+supersedes `call/0016`). The channel-to-output mapping is attested on the GoldLib.
+
 ### Initialise all miniport and stream state
 
 The FM miniport reads `m_fStreamExists` before it is ever written, and the FM stream
