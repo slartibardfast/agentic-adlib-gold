@@ -4,6 +4,10 @@
 - Scope: software
 - Date: 2026-07-04
 
+> Amended by `call/0024`: the normalization that achieves this byte-identity must recompute the
+> PE checksum, not zero it (zeroing it discarded the `/release` checksum a driver should carry).
+> The byte-identical requirement here stands.
+
 ## Context and Problem Statement
 
 `call/0007` set up two build lanes for the driver, a Linux/Wine lane and a Windows CI
