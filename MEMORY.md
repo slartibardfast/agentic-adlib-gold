@@ -1282,3 +1282,23 @@ OPERATIONAL FACTS:
   INF matrix, 4-op FM (full). Remaining = full-duplex (reg 14h + INF 2nd DMA + dual-stream --
   real HW, implement), control-chip stereo-wide (base spatializer for non-SP2 cards), source-mux
   + internal/niche (decide). Then 100%.
+
+## 2026-07-05 -- alpha.5 released for GoldLib hardware validation; full-duplex deferred
+
+- OPERATOR DECISION: "get driver up and running before more progress" -- validate on the GoldLib
+  first, THEN implement full-duplex as a focused pass (so a large install-critical untestable
+  change can't destabilize the known-good build). Full-duplex is fully designed in plan/0010
+  (mono+mono over the 2nd DMA; stereo already uses both MMA channels). NOT yet implemented.
+- Feature-complete EXCEPT full-duplex. source-mux + control-chip stereo-wide + I/O-reloc + timers
+  + telephone are DECIDED (unexposed) in call/0020 (stereo-wide is redundant with the SP2 node
+  which GoldLib has). ADPCM decided out (call/0018). EEPROM registry-gated (call/0019).
+- RELEASED v1.0.0-alpha.5 (driver tag at 1bf64d3; DriverVer bumped to 1.00.0000.5 so it reads
+  newer than the installed alpha.4). Zip (adlibgold.sys 92c480bc + adlibgold.inf) at
+  https://github.com/slartibardfast/adlib_gold/releases/tag/v1.0.0-alpha.5 with GoldLib install
+  steps (Have Disk, pick "GoldLib", I/O 388-38F / IRQ 7 / DMA 1) + a test checklist (FM 2-op/4-op,
+  stereo L/R, mono, record + record-gain slider, mixer, SP2 surround). CI green (tests + repro
+  build Linux+Windows). Host pin f820219 -> driver 1bf64d3, artifact 92c480bc.
+- NEXT (after hardware test): implement plan/0010 full-duplex (INF 2nd DMA additive/lower-prio,
+  adapter allocates 2nd DMA, dual-stream wave miniport, reg 14h + MMA ch1 for capture, ISR
+  services both). Do it additively (opt-in, default single-DMA path unchanged) + adversarial
+  review. Also: fold any GoldLib hardware-test findings back in.
