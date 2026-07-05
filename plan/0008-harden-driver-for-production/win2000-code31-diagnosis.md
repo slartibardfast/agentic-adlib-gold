@@ -123,6 +123,46 @@ Two candidate fixes are non-code, reversible, and independent of the trace:
 Do not change the `Init` card-detection path yet. It is a latent Code 10 wall, not the Code 31
 cause, and changing it now fixes nothing visible.
 
+## Update: a reboot was requested and no trace appeared
+
+The checked build was installed on the real GoldLib. Windows 2000 requested a reboot after the
+install, a live DebugView capture showed nothing, and the device stayed at Code 31. A second
+grounded pass (four research dimensions, two adversarial reviews, both confirming) refined the
+reading and corrected an interim guess.
+
+- The reboot request is not evidence that the driver loads only at boot, and a reboot alone
+  will not clear Code 31. A pending-restart state has its own code, Code 14
+  (`CM_PROB_NEED_RESTART`); the device shows Code 31 (`CM_PROB_FAILED_ADD`), which means a live
+  start was already attempted and failed. A demand-start PnP function driver is loaded live by
+  the PnP manager regardless of its start type, so it does not defer to boot.
+- Every PortCls, ntoskrnl, and HAL function the driver imports is present in Windows 2000 RTM.
+  The PortCls support reference marks Windows-XP-only exports with an asterisk, and all eleven
+  `Pc` functions the driver binds are un-asterisked, so an unresolved import is ruled out apart
+  from the unlikely case of a downlevel or corrupt `portcls.sys` on the specific machine.
+- An empty live capture means either the driver image never loaded, so `DriverEntry` never ran,
+  or a benign capture miss: the account was not a local Administrator, a kernel debugger on the
+  `/DEBUG` boot line stole the output, the capture was armed too late, or the verbose level was
+  masked.
+
+The leading concrete suspect is a filename mismatch. The service `ImagePath` is
+`%SystemRoot%\system32\drivers\adlibgold.sys`, but the checked build ships as
+`adlibgold.chk.sys`. If the checked binary was copied to the drivers folder under its own name,
+or the free release was installed instead of the checked build, the traced image is not the one
+the service loads, which reproduces the empty-trace-plus-Code-31 signature exactly.
+
+The cheapest decisive checks need no tools and no reboot, from an Administrator command prompt:
+`sc query adlibgold` (`STATE 4 RUNNING` means the image loaded and `DriverEntry` returned
+success; `STATE 1 STOPPED` matches code that never ran), `sc qc adlibgold` (the
+`BINARY_PATH_NAME`), and `dir %SystemRoot%\system32\drivers\adlibgold*.sys` to see which file is
+present and its size (the checked build is 78,336 bytes, the free build 57,344 bytes). If the
+on-disk file does not match the `ImagePath`, copy the checked build to `adlibgold.sys` and
+re-test.
+
+If the file is correct, the decisive trace is DebugView Capture then Log Boot, which loads the
+capture helper before the driver at the next boot and shows the buffered output when DebugView
+is relaunched after the reboot. Confirm a local Administrator account and no `/DEBUG` on the
+boot line first, since either makes the capture silent for a benign reason.
+
 ## Citations
 
 1. https://learn.microsoft.com/en-us/windows-hardware/drivers/install/cm-prob-failed-add

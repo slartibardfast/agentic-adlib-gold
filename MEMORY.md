@@ -1433,3 +1433,32 @@ OPERATIONAL FACTS:
 - LESSON: adversarial verification earns its keep -- the first-pass diagnosis "ruled out" the load
   class by contrasting Code 31 against codes 37/39, which DON'T EXIST on the target OS. Always check
   that a diagnostic distinction actually exists on the specific OS version before relying on it.
+
+## 2026-07-05 -- Win2000 Code 31 round two: no DebugView trace + reboot requested
+
+- Operator installed the checked build on the real GoldLib; Win2000 asked to reboot, a LIVE
+  DebugView capture showed NOTHING, Code 31 remained. Grounded pass (4 research + 2 adversarial,
+  both confirming). See plan/0008/win2000-code31-diagnosis.md "Update" section.
+- CORRECTION to my interim guess: the reboot request does NOT mean the driver loads only at boot,
+  and a reboot alone will NOT clear Code 31. Pending-reboot is its OWN code -- Code 14
+  (CM_PROB_NEED_RESTART). Code 31 (CM_PROB_FAILED_ADD) means a live start was ALREADY attempted and
+  FAILED. A demand-start (Start=3) PnP function driver loads LIVE regardless of StartType. I had
+  told the operator "reboot will likely fix it" -- that was wrong; corrected.
+- Imports RULED OUT: all 11 PortCls Pc* exports the driver binds are un-asterisked in the MS
+  "PortCls Support by OS" reference = present in Win2000 RTM; ntoskrnl/HAL imports all standard.
+- Empty trace => image never loaded (DriverEntry never ran) OR a benign capture miss (not local
+  Admin; /DEBUG boot line steals DbgPrint; capture armed too late; DEBUGLVL masked).
+- PRIME CONCRETE SUSPECT: filename mismatch. Service ImagePath = ...\adlibgold.sys, but the checked
+  build ships as adlibgold.chk.sys. If it was copied under its own name, OR the FREE release
+  (adlibgold-v1.0.0-alpha.8) was installed instead of the checked build, the traced/loaded image is
+  wrong -> empty trace + Code 31. (My DIAGNOSTIC-code31.txt offered a "copy adlibgold.chk.sys over
+  adlibgold.sys" method -- easy to get wrong.)
+- CHEAPEST DECISIVE CHECK (no tools, no reboot, Admin cmd): `sc query adlibgold` (STATE 4 RUNNING =
+  loaded+DriverEntry ok, fault later; STATE 1 STOPPED = never ran), `sc qc adlibgold`
+  (BINARY_PATH_NAME), `dir %SystemRoot%\system32\drivers\adlibgold*.sys` (checked=78,336 bytes;
+  free=57,344 bytes). Mismatch => copy checked build to adlibgold.sys, re-test.
+- If file is correct: DebugView Capture->Log Boot (arms Dbgv.sys before the driver at next boot;
+  one-shot, re-arm each boot; relaunch DebugView after reboot to read the buffer). Ground truth:
+  setupapi.log (copy line, Add Service, #E errors, "Device has problem: 0x1f"); regedit
+  Services\adlibgold ImagePath/Type=1/Start=3 + file exists; Enum\Root\MEDIA Service value; class
+  {4d36e96c...} UpperFilters/LowerFilters empty; SCM Event 7000 for adlibgold.
