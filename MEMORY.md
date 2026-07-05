@@ -1243,3 +1243,42 @@ OPERATIONAL FACTS:
   Remaining = 4-op B-E (plan/0009), full-duplex (INF+2nd DMA), source-mux (awkward KS, likely
   decide), control-chip stereo-wide (KSNODETYPE_STEREO_WIDE, redundant w/ SP2 node), internal/
   niche decision (I/O reloc, timers, telephone).
+
+## 2026-07-05 -- GoldLib scope clarified; 4-op FM completed; MMA timing centralized; INF matrix
+
+- OPERATOR CLARIFIED SCOPE via a rapid Q&A: (1) GoldLib is an EXACT hardware clone of the AdLib
+  Gold (same YMF262/OPL3 + YMZ263B/MMA + control ASIC re-creation), and the surround module IS
+  cloned + included, so GoldLib HAS SP2. (2) The original Gold shipped a SECOND DMA channel:
+  manual reg 14h (DEN1 + DMA SEL 1) + toolkit CtSelectDMA1ChannelSampChan -- full-duplex is real
+  hardware. (3) Goal = FULL feature-complete driver; GoldLib is the TEST BENCH (can only test
+  there). (4) INF should offer a MODEL MATRIX (Gold 1000 / 2000 / GoldLib), SP auto-detected.
+  (5) The YMZ263 "speed sensitivity" (won't run above a mid-486 on the DOS drivers) is NOT a
+  hardware ceiling -- it's a driver wait-state responsibility (our job, via chiptiming.h +
+  ChipTiming.tla). Web: GoldLib = pcmidi.eu/goldlib.html.
+- MMA TIMING (driver 706467..): the SDK requires 470ns between MMA register writes (sdk.txt
+  :11361). The driver's KeStallExecutionProcessor(1)=1us >= 470ns already satisfied it, but was a
+  magic 1; routed WriteMMALocked/ReadMMALocked/WriteMMA1 through ChipWriteDelayUs(CHIP_MMA,0) +
+  documented the 470ns basis. Absolute us-stalls are CPU-independent so a fast core never outruns
+  the chip -- the "correct on radically faster CPUs" goal.
+- INF MODEL MATRIX (driver f742e6e): adlibgold.inf now lists 3 model names (Gold 1000 ALG1000 /
+  Gold 2000 ALG2000 / GoldLib ALGLIB), all sharing the ONE proven install section (both DMA/IRQ
+  ranges via LC1+LC2); driver auto-detects model + SP at runtime. Lowest-risk matrix (install
+  logic unchanged). CRLF+ASCII preserved. Per-model DMA-range restriction is a future refinement.
+- 4-OP FM DONE (driver 9a35fbd, byte-repro 92c480bc): full B-E per plan/0009. Opl3_FMNote4Op
+  programs 4 ops (2 on primary slot, 2 on secondary) + both C-regs + play regs on primary only;
+  bMode = CNT_A|(CNT_B<<1) reaches Opl3_CalcVolume cases 0-3. Connection-select (0x104) DYNAMIC:
+  Opl3_UpdateConnection sets bit v only while a pair plays a 4-op voice, cleared on release, so
+  FULL 2-op polyphony is kept. Secondary slot reserved (bOn=TRUE) + hidden (bChannel=0xFE,
+  bNote=0xFF); FmVoiceAllocate gained a `protect` mask (excludes 4-op slots in all 4 passes).
+  KEY LESSON -- the adversarial review caught 4 REAL defects in this untestable synth code that
+  I'd have shipped: (1) CRITICAL every 4-op voice SILENT because the OPL3 output bits 0x30 were
+  never set (the 2-op bank bakes them; my converter only wrote the connect nibble; the note path
+  only masks) -> bake 0x30 into both C-regs in bnkconv.c; (2) HIGH 2-op/drum broke on 12 paired
+  channels (permanent 0x3F connection) -> dynamic connection; (3) resume restored CONNECTION
+  before NEW (the gating bit) -> reorder; (4) full-polyphony steal corrupted a 4-op pair ->
+  protect mask. Re-review clean (incl pitch-bend + connection-bit lifecycle). Audible timbres +
+  GM->OPL3.BNK-timbre mapping (45/128 by keyword) attested on GoldLib. Data: OPL3.BNK 157 4-op.
+- FEATURE STATE now: done = install fix, audit, stereo, EEPROM-gate, record-gain, MMA timing,
+  INF matrix, 4-op FM (full). Remaining = full-duplex (reg 14h + INF 2nd DMA + dual-stream --
+  real HW, implement), control-chip stereo-wide (base spatializer for non-SP2 cards), source-mux
+  + internal/niche (decide). Then 100%.
