@@ -7,7 +7,7 @@
 
 [software "adlib_gold"]
 	url          = https://github.com/slartibardfast/adlib_gold.git
-	pin          = 9493b43009e18312c04300b481f15a700c43a5e7
+	pin          = 0e5a6d848e3fcb6e117f891dcd08b07d3e5790ca
 	branch       = main
 	deploy       = main
 	deps-bundle  = https://github.com/slartibardfast/ddk.git f60af3fd65b53b67176499d9959adc1235cb1a1d3024c0adb6b7bd3c2fadb902
@@ -18,10 +18,10 @@
 	toolchain    = win2k-ddk-vc6
 	build        = ./build.sh
 	attest-host  = linux
-	artifact     = adlibgold.sys f3d893c4b7157050142a004409e2686a2d542a4c88ce032b822513a925240552
+	artifact     = adlibgold.sys 3f70ba6f967092d4ed67fbb9ef156ca1eeadb1963d7f1c359a88fb0136ad8def
 
 [build "adlib_gold" "windows"]
 	toolchain    = win2k-ddk-vc6
 	build        = build.bat
 	attest-host  = windows
-	artifact     = adlibgold.sys f3d893c4b7157050142a004409e2686a2d542a4c88ce032b822513a925240552
+	artifact     = adlibgold.sys 3f70ba6f967092d4ed67fbb9ef156ca1eeadb1963d7f1c359a88fb0136ad8def
