@@ -1182,3 +1182,21 @@ OPERATIONAL FACTS:
   PCM 8/16-bit mono+stereo playback+capture, FM synth MIDI, MIDI UART, topology mixer, power
   management, EEPROM, SP2 surround. Remaining is HARDWARE attestation on the GoldLib (stereo L/R
   mapping, continuous stereo playback, no FIFO overrun) -- untestable here.
+- CORRECTION (same day): a systematic feature-completeness audit (SDK capabilities vs driver
+  code) found the "feature-complete" claim above was PREMATURE. Real gaps remain:
+  * Record input gain / AGC (control regs 02h/03h) -- NEVER written, no KS node. A recording
+    app's input-level slider maps here. Most central user-facing gap.
+  * Source-select mux (reg 08h D1-D0, both/left/right) -- fixed at "both", no KS MUX node.
+  * Control-chip stereo-wide modes (reg 08h D3-D2) -- fixed at Linear, unexposed (distinct from
+    the SP2 surround node, which IS wired).
+  * EEPROM persistence -- SaveToEEPROM/RestoreFromEEPROM are DEAD CODE (defined common.cpp,
+    NEVER called). My earlier "EEPROM already implemented" claim was WRONG; registry persistence
+    is what actually runs (Save/RestoreMixerSettingsFromRegistry).
+  * 4-operator FM voices -- half-wired (b4Op computed fmsynth.cpp:1695 but unused; connection
+    select AD_CONNECTION always 0). Per-voice MIDI panning IS done (exceeds DDK sample).
+  * Full-duplex -- deliberately REJECTED (NewStream STATUS_INVALID_DEVICE_REQUEST) but only
+    plan-documented, no call/ MADR. Card has 2 DMA + 2 MMA channels so HW supports it.
+  * Internal/niche, correctly unexposed: I/O base relocation (reg 15h), 5 MMA timers (manual
+    says not wired on the card), telephone/PC-speaker/filter paths (reg 01h/10h/11h).
+  Plan: implement the user-facing mixer gaps (record gain, source mux, stereo-wide) + wire or
+  decide EEPROM, then decide full-duplex + 4-op + the internal set via call/. Then 100%.
