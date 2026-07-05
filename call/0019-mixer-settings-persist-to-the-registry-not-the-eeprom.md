@@ -33,10 +33,10 @@ registry flag that always defaults off (0)**.
   path; the boot order stays registry, then hardcoded defaults, unchanged.
 - A registry value (`SaveToEEPROM`, DWORD under the driver's settings key) gates the card
   save. It is read at init and defaults to `0` (off) whenever it is absent or unreadable, so
-  a fresh install never writes the EEPROM. Only when an operator sets it to `1`, after the
+  a fresh install never writes the EEPROM. Only when an operator sets it to `1`, once the
   driver's functionality is verified on hardware, does the driver also persist to the card,
   and then only from the safe `SaveMixerSettingsToRegistry` path (`PASSIVE_LEVEL`, hardware
-  mapped and powered), accepting the write-wear that flag then opts into.
+  mapped and powered), where the write-wear becomes an accepted cost of that flag.
 - `RestoreFromEEPROM` stays available for that same future control and is not auto-invoked at
   boot.
 
