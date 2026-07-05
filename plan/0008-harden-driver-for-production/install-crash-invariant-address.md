@@ -97,6 +97,26 @@ further; two cheap observations from the card fork the search space decisively:
 
 The next INF or driver change is gated on these two facts, not on a sixth guess.
 
+## Ground truth from the card (operator, alpha.5)
+
+Two observations answered, and they are decisive:
+
+- **The crash fires the instant the driver/INF is selected in the Have-Disk wizard** -- before any
+  file copy, and before the wizard's "finishing" (resource-arbitration) step.
+- **`adlibgold.sys` is absent** from the drivers folder afterwards -- `CopyFiles` never ran.
+
+So the fault is in the earliest install phase: setupx parses the INF, the operator selects the
+device, and CONFIGMG (ring-0) creates the root devnode and **registers its forced `LogConfig`**.
+That registration -- not arbitration, not copy, not driver load -- is where it page-faults. This
+rules out every later-phase suspect: the KS/WDMAUDIO registration execution, the AddInterface
+proxies, the CopyFiles source-disk mapping, and all driver code.
+
+A crucial corollary: **the SB16 sample never validated this path.** The SB16 devnode is
+auto-created by the ISA-PnP enumerator matching `*PNPB003`; it is never manually selected as a
+non-PnP device, so its (working) INF is not evidence that a manual non-PnP MEDIA install with a
+forced `LogConfig` works on 98SE. The suspect is now narrow: **the forced `LogConfig` (or the
+whole manual-root-devnode approach) as CONFIGMG registers it at select time.**
+
 ## The principle to carry forward
 
 The invariant address is proof: **this is an INF/setup fault, not driver code.** Fix the INF.
