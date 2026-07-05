@@ -26,13 +26,19 @@ Three concrete problems block auto-wiring the EEPROM save:
 
 ## Decision
 
-Mixer settings persist to the **registry**, and the card EEPROM save is **off by default**.
+Mixer settings persist to the **registry**, and the card EEPROM save is **gated by a
+registry flag that always defaults off (0)**.
 
 - `SaveMixerSettingsToRegistry`/`RestoreMixerSettingsFromRegistry` remain the persistence
   path; the boot order stays registry, then hardcoded defaults, unchanged.
-- `SaveToEEPROM` is not auto-invoked. It and `RestoreFromEEPROM` stay available for a future
-  explicit, hardware-validated "save to card" control, enabled only once the driver's
-  functionality is verified on real hardware.
+- A registry value (`SaveToEEPROM`, DWORD under the driver's settings key) gates the card
+  save. It is read at init and defaults to `0` (off) whenever it is absent or unreadable, so
+  a fresh install never writes the EEPROM. Only when an operator sets it to `1`, after the
+  driver's functionality is verified on hardware, does the driver also persist to the card,
+  and then only from the safe `SaveMixerSettingsToRegistry` path (`PASSIVE_LEVEL`, hardware
+  mapped and powered), accepting the write-wear that flag then opts into.
+- `RestoreFromEEPROM` stays available for that same future control and is not auto-invoked at
+  boot.
 
 ## Consequences
 
