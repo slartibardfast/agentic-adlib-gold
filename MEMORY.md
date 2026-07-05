@@ -1518,3 +1518,26 @@ OPERATIONAL FACTS:
   INF/resource red herrings: an unloadable image (zero checksum). The INF grounding (call/0021-0023)
   was real work but could never have made an unloadable .sys run. When a driver never reaches
   DriverEntry across MULTIPLE OSes, suspect the IMAGE (checksum, imports, PE validity) before the INF.
+
+## 2026-07-05 -- alpha.10: fixed SILENT audio (master volume is a dB code, was programmed linear)
+
+- alpha.9 loaded and drove OPL3+MMA on Win2000 (trace-proven) but was SILENT on ALL paths: PCM,
+  FM/MIDI, and dxdiag DirectSound+DirectMusic. All paths sum into ONE node before line-out: the
+  control-chip master output volume (reg 04/05). ROOT: reg 04/05 is a dB CODE (D6-D7 forced 1;
+  D5-D0 dB: +6dB=0x3F down to -64dB=0x1C; below 0x1C = -80dB OFF; audible bytes 0xDC-0xFF; 0dB=0xFC),
+  but the driver programmed it like the LINEAR FM/sampling regs (09-0C, 128-255). Default 0xD8 ->
+  D5-D0=0x18 -> -80dB OFF -> muted the shared master, silencing every path.
+- Deep first-hand code+SDK review confirmed all 4 items: (1) master default 0xD8=OFF (common.cpp:183);
+  (2) topology master MinVal 0xC0 also in the OFF band, and a linear map on a dB reg (algtopo.cpp:782);
+  (3) MMA output volume reg 0Ah defined (algwave.h:27) but NEVER written (0 uses) -> PCM at chip
+  default; (4) registry restore replays a stale saved 0xD8 verbatim (common.cpp:1272).
+- FIXES (call/0025; alpha.10 = driver 9493b43, artifact f2573b6c -> f3d893c4, chk 535e92bb; double-
+  build reproducible + valid checksum; host re-pinned): master default 0xD8->0xFC (0dB); topology
+  master floor 0xC0->0xDC; write MMA reg 0Ah=0xFF per-channel at PCM start (SDK: reg 0Ah "both
+  channels", 0=min/FF=max, sdk.txt:11091); clamp a restored master <0xDC up to 0xFC so a stale saved
+  value SELF-HEALS (operator need not delete the registry key).
+- LESSON: not all volume registers on one chip share an encoding. The Gold master (reg 04/05) is
+  dB-coded; the FM/sampling source volumes (reg 09-0C) are linear 128-255 and were already correct
+  (default 0xC0, floor 0x80). Decode EACH register against the SDK; never assume a shared scheme.
+- STATUS: awaiting operator retest of alpha.10 audio. The digital stages upstream were already
+  trace-proven correct, so if the master now passes signal, sound should come out on both paths.
