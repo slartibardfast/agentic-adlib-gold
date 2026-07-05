@@ -1142,3 +1142,43 @@ OPERATIONAL FACTS:
   per plan/0008/stereo-mma-reference.md -- DMA-raw both-channel ILV path; needs channel-1
   MMA access which doesn't exist yet + a call/ superseding 0016) and ADPCM (not implemented).
   Both are large and UNTESTABLE here -- hardware behavior lands attested.
+
+## 2026-07-05 -- 16-bit stereo implemented; ADPCM ruled out of the WDM layer
+
+- Implemented stereo digital audio (call/0017, supersedes call/0016). The validated MMA
+  reference (plan/0008/stereo-mma-reference.md, a register-by-register trace of the Miles AIL
+  driver checked against the manual) resolved call/0016's two blockers: channel-1 addressing
+  (base+6/base+7 = the driver's existing ALG_REG_MMA1_ADDR/DATA) and the DMA-vs-PIO interleave
+  question (ILV needs DMA ENB on both channels).
+- Added IAdapterCommon::WriteMMA1 (channel-1 latch). NO interrupt-sync serialization: the ISR
+  touches only channel 0 (base+4/5), a separate latch, and the single wave stream's start/stop
+  is the sole caller. ProgramMmaStartStereo programs both channels' reg9+reg12 per the reference
+  sequence (reset both FIFOs -> reg9 both no-GO -> reg12 both -> arm DMA -> GO on ch0 only). At
+  16-bit the four values decode EXACTLY to the reference: PRC_0=0x46, PRC_1=0x26, SFC_0=0xC5,
+  SFC_1=0x43, built from the driver's own field constants (independently re-derived in review).
+- WaveMmaPlayChannelBits gained an mma_channel arg: mono->both outputs; stereo ch0->R, ch1->L
+  (opposite the manual's default channel naming, so L/R correctness is ATTESTED on hardware, per
+  call/0017). Omitted the reference's 4-byte FIFO prime: PortCls owns the ISA DMA, like the
+  working 8-bit mono DMA path, which primes nothing.
+- KEY LESSON (adversarial subagent review caught a REAL defect): m_16Bit means "16-bit samples",
+  TRUE for BOTH 16-bit mono (PIO+dither) and 16-bit stereo (DMA). Every "m_16Bit means use-PIO"
+  site had to become "m_16Bit && !m_Stereo". I fixed the obvious ones (ISR FillFifo, PAUSE/STOP
+  DMA-stop) but MISSED GetPosition -- it returned m_SoftwarePosition (never advanced on the DMA
+  path) so the play cursor would freeze at 0 and stereo would stall. Fixed to use the DMA counter.
+  Lesson: when a boolean's meaning splits (sample width vs transport path), audit EVERY use, not
+  just the ones you remember; an untestable path especially needs the independent review pass.
+- wave.allium: AcceptPcmFormat now gates on a pcm_subtype field (accepts mono+stereo, keeps a
+  real satisfiable failure case), added StereoInterleavesChannels rule discharged by test_wave_reg.
+  All 44 obligations dispositioned (base check green; strict-discharge UNLINKED warns are the
+  pre-existing C-vs-Rust `fn` heuristic, not new).
+- ADPCM ruled OUT of the WDM layer (call/0018): the YMZ263's 4-bit ADPCM is a Yamaha format (its
+  DOS toolkit's own WAVE_FORMAT_ADPCM4, halved rates, 44.1 unsupported); WDM decompresses ADPCM to
+  PCM in user mode before the kernel driver, and no Windows codec emits Yamaha ADPCM. The driver
+  plays PCM, which is WDM-correct (the DDK SB16 sample likewise does not expose its chip's ADPCM).
+- Build byte-reproducible: two from-scratch build.sh runs both give adlibgold.sys sha256
+  1cff95c7...; re-pinned .host-software (pin b89752f, artifact 1cff95c7 on both build stanzas) +
+  both CI ARTIFACT_SHAs. All 10 userspace tests pass.
+- FEATURE-COMPLETE for WDM: with stereo done and ADPCM decided out-of-scope, the driver covers
+  PCM 8/16-bit mono+stereo playback+capture, FM synth MIDI, MIDI UART, topology mixer, power
+  management, EEPROM, SP2 surround. Remaining is HARDWARE attestation on the GoldLib (stereo L/R
+  mapping, continuous stereo playback, no FIFO overrun) -- untestable here.
