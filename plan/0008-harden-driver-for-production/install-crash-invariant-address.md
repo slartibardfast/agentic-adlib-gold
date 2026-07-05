@@ -122,3 +122,28 @@ whole manual-root-devnode approach) as CONFIGMG registers it at select time.**
 The invariant address is proof: **this is an INF/setup fault, not driver code.** Fix the INF.
 Do not ship another driver-code change for this crash. Confirm each INF change installs on the
 GoldLib before trusting it.
+
+## Correction from the grounding pass (read `non-pnp-inf-install-grounding.md`)
+
+A web and DDK grounding pass corrected three claims made above and in `call/0021`. The
+grounded findings live in `non-pnp-inf-install-grounding.md`; the summary:
+
+- **The forced-config requirement is refuted.** This document's "the forced `LogConfig` (or
+  the whole manual-root-devnode approach)" framing assumed a non-PnP devnode needs a forced
+  config. No Microsoft source says so, and real Windows 98 SE non-PnP INF files
+  (`SSMCIRDA.INF`, `MSPORTS.INF`) install with arbitratable `HARDRECONFIG` configs and no
+  `FactDef` at all.
+- **The idiom is `HARDWIRED` in a `LogConfig`, not `FORCECONFIG` in a `FactDef`.** The Windows
+  95 `MIDI.INF`, which installs an Adlib/OPL FM at base `388`, uses `ConfigPriority=HARDWIRED`
+  in a `LogConfig` with a `NORMAL` `FactDef`. No real Windows 9x sound INF uses `FORCECONFIG`.
+- **The configuration manager is a hypothesis, not a fact.** The invariant address proves
+  fixed operating-system code, but the Windows 9x crash screen names the faulting driver in
+  the form `in VXD NAME(nn) + offset`, and that name was never captured. It could be the
+  virtual machine manager rather than the configuration manager. Capturing that line is the
+  highest-value next diagnostic.
+
+A second defect the pass found, independent of the crash: the shipped `IOConfig=388-38F`
+(eight ports) under-claims the card, whose MMA ports run to `base+0Eh` (`388-397`, sixteen
+ports). `call/0022` records the grounded fix (widened range, `HARDWIRED` `LogConfig`, `NORMAL`
+`FactDef`) and the A/B release that settles the `FORCECONFIG`-versus-`HARDWIRED` question on
+hardware.
