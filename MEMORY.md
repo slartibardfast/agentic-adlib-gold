@@ -1664,3 +1664,28 @@ OPERATIONAL FACTS:
 - One cross-repo copy remains BY DESIGN: host .host-software `artifact` and software adlibgold.sys.sha256
   are two records of one value; unifying them (host verifying against the software file) is a
   host-lifecycle concern for upstream, not patched here (call/0027).
+
+## plan/0012 + call/0028: Wine prefix out of the worktree (fixes the software --check hang) [2026-07-06]
+
+- DIAGNOSED (strace) the software --check hang from the prior "shells not finished" entry. host-lifecycle
+  software --check does a recursive worktree walk that FOLLOWS SYMLINKS with no cycle guard and enters
+  gitignored dirs. The Wine build prefix .winebuild has shell-folder symlinks (My Documents -> /home/david;
+  My Videos/Music/Pictures/Templates/Downloads -> My Documents) that ESCAPE the repo into $HOME and form an
+  infinite CYCLE (My Videos -> My Documents -> /home/david, and /home/david/.wine re-enters). strace: 408 of
+  830 openats inside .winebuild, paths growing unbounded, State D, wchan p9_client_rpc. A SINGLE run hangs
+  (not just concurrency); 19 accumulated over ~20h at ~7% CPU each. Root cause is the TOOL's walk and is
+  filesystem-independent; WSL2/9P only turns a fast loop into a silent multi-hour D-state (unkillable) hang.
+- FILED upstream: connollydavid/host-lifecycle#15 (OPEN) - the walk must not follow symlinks (lstat, treat a
+  symlink as a leaf), must honor .gitignore / walk tracked files, and needs a depth/visited-inode guard.
+  Instruct-don't-patch, so fixed upstream not in-tree. (Second upstream ticket after host-lint#20.)
+- MITIGATED our side (call/0028 + plan/0012): build.sh now defaults WINEPREFIX to
+  ${XDG_CACHE_HOME:-$HOME/.cache}/adlibgold-winebuild (OUT of the worktree) with a mkdir -p guard before
+  wineboot (the new parent may be absent on a fresh runner); the WINEPREFIX override is preserved; the
+  existing in-tree .winebuild was removed. Software commit e487e88; host re-pinned 0530877.
+- REPRODUCIBILITY PRESERVED (adversarially verified via a workflow, then CI-proven): the prefix host path
+  never reaches the toolchain (fixed C:\drv/C:\tc/C:\temp), so the artifact is invariant to prefix location.
+  Both build workflows re-ran on the build.sh change and reproduced 3f70ba6f on linux/Wine AND native
+  Windows. Artifact unchanged, still alpha.11, no new tag.
+- LESSON: build scratch (Wine prefixes, node_modules, venvs) belongs OUTSIDE the worktree, not merely
+  gitignored - a .gitignore hides it from git, not from a tree walker that ignores gitignore and follows
+  symlinks. rm -rf of a symlink-laden dir is safe (rm never follows symlinks, so it cannot delete the target).
