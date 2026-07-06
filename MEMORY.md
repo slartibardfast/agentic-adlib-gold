@@ -1689,3 +1689,24 @@ OPERATIONAL FACTS:
 - LESSON: build scratch (Wine prefixes, node_modules, venvs) belongs OUTSIDE the worktree, not merely
   gitignored - a .gitignore hides it from git, not from a tree walker that ignores gitignore and follows
   symlinks. rm -rf of a symlink-laden dir is safe (rm never follows symlinks, so it cannot delete the target).
+
+## Adopted host-lint v0.13.0 (fixes host-lint#20, the --prose-no-args footgun) [2026-07-06]
+
+- Upstream shipped host-lint v0.13.0 (~13:13Z) fixing host-lint#20 (which I filed). The 2-hourly watcher
+  cron caught the new release tag (issue itself still OPEN/unlinked, but the v0.13.0 code cites host-lint#20).
+- FIX (verified by diff + behavioral repro): v0.13.0 adds audit_tracked_docs() and routes no-file --prose
+  AND --all through it, so `host-lint --prose` with no files now audits the repo's tracked docs (matching
+  the host-lifecycle prose gate) instead of silently scanning nothing. Repro: no-args --prose on a troped
+  doc now flags it (exit 3); explicit --prose <file> still works.
+- ADOPTED: tools/host-lint v0.12.1 (78804cd) -> v0.13.0 (672049e); rebuilt (cargo build --release, ~8s);
+  installed the binary to ~/.local/bin; host gitlink bumped (commit 499b084, pushed).
+- CI Prose gate UNAFFECTED: `host-lifecycle prose` uses host-lint's engine COMPILED INTO host-lifecycle
+  (v0.12.0), NOT the standalone submodule. So the bump fixes the local `host-lint --prose` CLI but does
+  not touch the CI gate. Full sweep stayed green (validate, prose clean, reconcile, book, software --check
+  no hazard - and software --check now COMPLETES since the plan/0012 .winebuild mitigation).
+- NOTE for a future host-lifecycle bump: v0.13.0 adds advisory note:-level detectors (anaphora,
+  tell-density) and catches an ing-tail in plan/0011 that v0.12.0 missed - all note: severity, exit 0,
+  non-blocking, NOT enforced by CI (v0.12.0 engine). When host-lifecycle later bundles v0.13.0's engine,
+  those may become blocking; re-run prose then and clean any newly-flagged docs.
+- The commit hook blocks only on rc 1 (confirmed tell); rc 3 (warning) is advisory/print-only, so
+  v0.13.0's exit-3 on the pre-existing advisory numerals does not block commits.
