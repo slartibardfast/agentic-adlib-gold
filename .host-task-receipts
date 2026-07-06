@@ -12,3 +12,18 @@
     evidence = both workflows verify via sha256sum -c adlibgold.sys.sha256, no ARTIFACT_SHA; .gitattributes pins *.sha256 to LF (6329268); Reproducible Build run 28784736061 and Reproducible Build (Windows) run 28784738916 both green; host re-pinned 7cb4af3
     tool = host-lifecycle@0.37.0
     recorded = 2026-07-06
+
+[receipt "plan/0012#relocate-prefix"]
+    disposition = done
+    verify = attested call/0028
+    inputs = software/adlib_gold/main/build.sh
+    evidence = build.sh defaults WINEPREFIX to ${XDG_CACHE_HOME:-$HOME/.cache}/adlibgold-winebuild with a mkdir -p guard, override preserved; existing in-tree .winebuild removed; software commit e487e88 per call/0028
+    tool = host-lifecycle@0.37.0
+    recorded = 2026-07-06
+
+[receipt "plan/0012#verify-repro"]
+    disposition = done
+    verify = attested operator
+    evidence = both build workflows reproduced 3f70ba6f on e487e88: Reproducible Build run 28786930210 (linux) and Reproducible Build (Windows) run 28786930032 both green; host re-pinned 0530877
+    tool = host-lifecycle@0.37.0
+    recorded = 2026-07-06
