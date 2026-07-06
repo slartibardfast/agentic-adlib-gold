@@ -23,7 +23,7 @@ the audible floor, so -80 dB off; and the topology master node advertised a mini
 also inside the off band. Every path was therefore muted at the shared master.
 
 Two related gaps compounded it. The MMA digital-audio output volume (reg 0Ah, per channel,
-0 = minimum and 0xFF = maximum) was defined but never written, leaving the sampling path at the
+0 = minimum and 0xFF = maximum) was defined but never written, so the sampling path stayed at the
 chip's undocumented power-on default. And the mixer registry restore replayed a saved value
 verbatim, so a stale master value saved from the old buggy default would survive a default
 change unless the operator deleted the settings key.
@@ -32,13 +32,13 @@ change unless the operator deleted the settings key.
 
 Four fixes.
 
-- The master output-volume default becomes 0xFC (0 dB), replacing 0xD8 (which was off). The
+- The master output-volume default becomes 0xFC (0 dB); the prior default 0xD8 was off. The
   default now sits in the audible band.
 - The topology master node's minimum register value becomes 0xDC (0x1C in the field, the -64 dB
-  floor of the audible range), replacing 0xC0. The whole slider range is now audible, and the
-  taper is confined to the register's real dB range.
+  floor of the audible range); the prior minimum was 0xC0. The whole slider range is now audible,
+  and the taper is confined to the register's real dB range.
 - The MMA output volume (reg 0Ah) is written to 0xFF (maximum) at PCM start, on both channels for
-  a stereo stream and on channel 0 for a mono stream, matching the SDK's per-channel register.
+  a stereo stream and on channel 0 for a mono stream, per the SDK's per-channel register.
 - The mixer registry restore clamps a restored master value that is below 0xDC back up to 0 dB
   (0xFC), so a stale or corrupt saved value can never silence the card, and no manual registry
   deletion is needed on an already-installed machine.

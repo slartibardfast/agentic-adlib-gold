@@ -58,9 +58,9 @@ its inputs and recomputing it, never by zeroing it.
 - Good: the artifact is now both byte-reproducible and carries a valid checksum, so it matches
   what `link /release` was meant to produce and removes the one header field the build
   deliberately corrupted. This is correct independent of whether it resolves the Code 31.
-- The recorded artifact hash changes: the four checksum bytes go from zero to the correct value,
-  so the `adlibgold.sys` hash differs from the earlier `92c480bc` and is re-recorded in
-  `.host-software` and re-pinned.
+- The recorded artifact hash changes: the build now writes the four computed checksum bytes where
+  it previously wrote zero, so the `adlibgold.sys` hash differs from the earlier `92c480bc` and is
+  re-recorded in `.host-software` and re-pinned.
 - Verified two ways: a double build produces identical bytes, and `software --verify-build`
   re-derives the recorded hash. The checksum algorithm is pure integer arithmetic in the hermetic
   post-link step, validated byte-for-byte against a reference, so it is environment-independent.
@@ -70,4 +70,5 @@ its inputs and recomputing it, never by zeroing it.
   export tables, verified with a dependency dump on the target. The `0x80` section alignment was
   ruled out by direct inspection (every section satisfies the sub-page invariant).
 - This amends `call/0009`. The byte-identical requirement itself stands; only the normalization
-  method changes, from zeroing the checksum to recomputing it. The fix ships as `v1.0.0-alpha.9`.
+  method changes: the build now recomputes the checksum instead of zeroing it. The fix ships as
+  `v1.0.0-alpha.9`.

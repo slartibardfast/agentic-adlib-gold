@@ -48,7 +48,7 @@ Candidates, to bisect against the working SB16 INF:
 1. **The `Include`/`Needs` of `ks.inf` + `wdmaudio.inf`** (`KS.Registration`, `WDMAUDIO.Registration`).
    If Win98SE's copies of those INFs lack the named sections, or the pulled-in directives fault,
    setup dies here. Compare exactly what the SB16 INF includes and needs.
-2. **The class / model / provider setup**, or the model-matrix models line, differing from the SB16.
+2. **The class / model / provider setup**, or the model-matrix models line, where it differs from the SB16.
 3. **An `AddReg` or interface directive** that references a value setup rejects on 98SE.
 
 ## Diagnostic plan (for after the compact)

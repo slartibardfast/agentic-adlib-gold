@@ -188,7 +188,7 @@ eliminate, not a proven cure. The `0x80` section alignment was ruled out by dire
 If Code 31 survives the valid-checksum `alpha.9` build, the checksum is exonerated and the next
 suspect is import resolution against the target machine's own `ntoskrnl.exe`, `hal.dll`, and
 `portcls.sys` export tables: a single missing or renamed export makes the loader fail before
-`DriverEntry` with no trace, matching the symptom. Dependency Walker on the target (opening
+`DriverEntry` with no trace, which matches the symptom. Dependency Walker on the target (opening
 `adlibgold.sys` against the machine's own binaries) is the decisive test and is provided on the
 diagnostic media.
 

@@ -26,9 +26,9 @@ code or in resource arbitration.
 
 The Ad Lib Gold (1992) predates ISA Plug-and-Play and reports no PnP hardware id, so
 it installs as a manually-created **root devnode** with a synthetic hardware id
-(`ALG1000`). The DDK SB16 sample the driver is modelled on never exercises this path:
-its devnode is auto-created by the ISA-PnP enumerator matching `*PNPB003`, which hands
-CONFIGMG a real boot configuration. Our INF instead offered the devnode two
+(`ALG1000`). The DDK SB16 sample the driver is modelled on reaches CONFIGMG by a
+different route: its devnode is auto-created by the ISA-PnP enumerator, which matches
+`*PNPB003` and supplies a real boot configuration. Our INF instead offered the devnode two
 arbitratable `LogConfig` sections at `ConfigPriority=NORMAL` (the Gold 1000 and Gold
 2000 IRQ/DMA ranges) plus a `FactDef` also at `NORMAL`. Microsoft's INF reference is
 explicit that a manually-installed non-PnP device must carry a **forced** boot

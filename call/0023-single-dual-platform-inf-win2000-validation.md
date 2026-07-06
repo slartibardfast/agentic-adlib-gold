@@ -35,9 +35,9 @@ validation path that does not depend on solving the 98 SE manual-install crash f
 Ship a single INF, `adlibgold.inf` (the grounded form `call/0022` chose), as the release for
 both Windows 9x and Windows 2000, and drop the A/B alternate `adlibgold-forceconfig.inf`.
 
-- The resource form is unchanged from `call/0022`: a `HARDWIRED` `LogConfig` (`ALG.LC0`) bound
-  to both the undecorated and the `.NT` install section, a `NORMAL` `FactDef` alongside, and the
-  fixed I/O `388-397`, IRQ 7, DMA 1. The grounding confirmed this form is honored on Windows 2000
+- The resource form matches `call/0022`. It uses a `HARDWIRED` `LogConfig` (`ALG.LC0`), bound to
+  the undecorated install section and to the `.NT` section; a `NORMAL` `FactDef` beside it; and the
+  fixed resources I/O `388-397`, IRQ 7, and DMA 1. The grounding confirmed this form is honored on Windows 2000
   (the `LogConfig` reference ships a byte-for-byte identical `HARDWIRED` pattern for a non-PnP ISA
   controller).
 - Remove `adlibgold-forceconfig.inf` from the driver repository. The A/B was a 98 SE tactic; with
@@ -51,7 +51,7 @@ both Windows 9x and Windows 2000, and drop the A/B alternate `adlibgold-forcecon
 
 - Good: one installer serves both platforms, which is simpler for the operator and matches how a
   dual-platform INF is meant to work. Windows 2000 validation exercises the whole driver (binary
-  load, subdevice registration, audio) independently of the 98 SE install crash, converting a
+  load, subdevice registration, audio) independently of the 98 SE install crash, which converts a
   blocked path into a testable one.
 - Trade-off, stated so it is a conscious choice: dropping the alternate INF gives up the ability
   to distinguish `HARDWIRED`-`LogConfig` from `FORCECONFIG`-`FactDef` on 98 SE in a single
