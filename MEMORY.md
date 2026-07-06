@@ -1576,3 +1576,36 @@ OPERATIONAL FACTS:
 - STATUS: awaiting operator retest of alpha.11 (on USB at E:\adlibgold-v1.0.0-alpha.11\, free +
   checked\). This is the confirmed root cause of the silence, not another guess. If still silent, the
   checked build's CtrlWr/VolSet trace localizes it against ground truth.
+
+## Methodology upgrade before host transfer (host-template 4c6176f, host-lifecycle v0.37.0) [2026-07-06]
+
+- CONTEXT: operator is transferring the host to a new machine. Followed the connollydavid/host process
+  ("keep a repo an agentic project"). classify = case c (already-adopted, .host stamp present); the
+  case-c action is the ledger-driven upgrade. Verify gate re-run green throughout.
+- FOUND: the host-template submodule (e8a9ae1) was behind its remote (4c6176f); two NEW UPGRADING
+  ledger entries had appeared, so the earlier "up to date" was measured against the stale tip. ALWAYS
+  fetch the template remote before trusting `upgrade`'s "up to date".
+- APPLIED both entries (both independent, both requires host-lifecycle v0.36.0 which we meet):
+  (1) 1682d62 "a release reconciles every carried-template pin" - declared no-op for a project that
+  releases no host-* tool; we are a pure consumer (we embed the adlib_gold driver, release no tool),
+  so recording it changed nothing. (2) 7127dc4 ".bare store with a .git gitdir-link, not a bare repo
+  named .git" (call/0039) - our software was ALREADY in the .bare layout (software/adlib_gold/.bare +
+  .git file `gitdir: ./.bare` + main/), so `software --materialize` was a strict no-op (0 items). Both
+  recorded via their verify post-conditions; `upgrade --advance` compacted the baseline 46a1fd2 ->
+  7127dc4 (0 applied out of order).
+- NON-OBVIOUS DRIFT: the installed host-lifecycle BINARY (~/.local/bin) had been upgraded to v0.37.0,
+  but the tools/host-lifecycle SUBMODULE pin was still 7e63d99 (v0.36.0). A receipt stamped
+  tool=host-lifecycle@0.37.0 surfaced it. On a fresh host, building from the submodule would give
+  v0.36.0 while receipts claim v0.37.0. Aligned the submodule pin 7e63d99 -> bf0eacd (v0.37.0, tagged,
+  on remote); skills/ set is identical between the two so no skill change; re-ran link-skills.sh
+  (24 skills). LESSON: after an upgrade, check that the pinned tool reference == the installed binary
+  version the receipts record.
+- END STATE (all committed + pushed for transfer): .host baseline 7127dc4; host-template @ 4c6176f;
+  tools/host-lifecycle @ bf0eacd (v0.37.0); upgrade + verify phase receipts refreshed. Software
+  UNTOUCHED (still pin 0e5a6d8, tag v1.0.0-alpha.11, artifact 3f70ba6f) - this was a methodology
+  upgrade only, no driver change.
+- LESSON (transfer): the materialized software worktree, the deps-bundle, and the .claude/skills
+  symlinks are all GITIGNORED/regenerated - a fresh clone rebuilds them via
+  `host-lifecycle software --materialize` + `link-skills.sh`. What must be on the remotes is the
+  pins: host HEAD, software pin+tag, every submodule gitlink SHA. All verified present on their
+  remotes before transfer.
