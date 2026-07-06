@@ -17,3 +17,4 @@ synth subsystems working on Windows 98SE, proven by repeatable dual-hosted build
 - [0008 harden the driver for production and lock each fix behind a spec obligation](0008-harden-driver-for-production/README.md)
 - [0009 implement four-operator FM voices from the on-disk timbre bank](0009-implement-four-operator-fm/README.md)
 - [0010 full-duplex over the second DMA channel](0010-full-duplex-over-the-second-dma/README.md)
+- [0011 one source of truth for the build-artifact hash](0011-single-source-build-artifact-hash/README.md)
