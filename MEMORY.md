@@ -1609,3 +1609,37 @@ OPERATIONAL FACTS:
   `host-lifecycle software --materialize` + `link-skills.sh`. What must be on the remotes is the
   pins: host HEAD, software pin+tag, every submodule gitlink SHA. All verified present on their
   remotes before transfer.
+
+## Fixed all four CI failures across both repos [2026-07-06]
+
+- Investigated and fixed every red workflow. Two repos in scope only: slartibardfast/agentic-adlib-gold
+  (host) and slartibardfast/adlib_gold (software). Tool submodule CIs (connollydavid/*, juxt, specula)
+  are external references, out of scope ("instruct, don't patch").
+- SOFTWARE Reproducible Build (linux + windows) FAILED since the alpha.9 "recompute PE checksum" commit.
+  ROOT: the two workflows (.github/workflows/reproducible-build{,-windows}.yml) hardcode
+  `ARTIFACT_SHA: 92c480bc` - the PRE-alpha.9 hash - and it was never bumped through alpha.9/10/11. The
+  build reproduces correctly on both hosts (produces 3f70ba6f, matches the pin); only the stale expected
+  constant failed the `sha256sum -c` check. FIX: set ARTIFACT_SHA to 3f70ba6f in both. Software commit
+  9372909, pushed; host re-pinned 0e5a6d8 -> 9372909 (artifact unchanged, NOT a version bump, no new tag).
+  Both workflows dispatched (their paths filter excludes the .yml itself) and confirmed GREEN.
+- LESSON (release): the expected driver-artifact hash lives in TWO places that must both bump on any
+  binary-changing release: (1) host `.host-software` `artifact = ...` (both build stanzas), and (2) the
+  software repo's own `reproducible-build*.yml` `ARTIFACT_SHA`. The release/verify-build gate only checks
+  (1); (2) is a separate constant with no cross-check, so it silently drifted for three releases. On the
+  next binary change, bump BOTH. (Candidate follow-up: have the software CI read the expected hash from a
+  committed file so there is one source of truth.)
+- HOST Prose FAILED persistently: `host-lifecycle prose .` flagged 11 warning tropes (ing-tail, false-range,
+  negative-parallelism) in call/0021,0023,0024,0025 and two plan/0008 docs, exit 3. FIX: reworded each
+  flagged clause, decision/hash/register/fact all preserved (incl. the historical 92c480bc references);
+  prose now clean. Commit 55b009b.
+- LESSON (tooling): the CI gate is `host-lifecycle prose .`, which flags tropes that standalone
+  `host-lint --prose` and `host-lint --docs` do NOT (both returned 0 locally while the gate found 11).
+  To reproduce the Prose gate locally, run `host-lifecycle prose .`, never `host-lint --prose`.
+- LESSON (immutability vs prose): an accepted call/ record flagged for prose is reworded (the methodology's
+  default disposition; the alternative is boxing, which mangles a decision record), keeping every decision,
+  value, and fact intact so the audit trail is unchanged. Only prose structure moved.
+- HOST mdBook FAILED on the alpha.11 doc commit: NOT a build failure - the book built; the Pages `deploy`
+  step returned "Deployment failed, try again later" (a transient Pages-backend flake, classically the
+  concurrent-deployment race). mdbook.yml ALREADY has the correct `concurrency: group: pages` guard and a
+  paths filter, so no code change. The prose-fix push re-triggered it and it deployed GREEN. Re-trigger,
+  don't patch, a transient Pages deploy.
