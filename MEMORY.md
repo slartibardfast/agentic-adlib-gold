@@ -1643,3 +1643,24 @@ OPERATIONAL FACTS:
   concurrent-deployment race). mdbook.yml ALREADY has the correct `concurrency: group: pages` guard and a
   paths filter, so no code change. The prose-fix push re-triggered it and it deployed GREEN. Re-trigger,
   don't patch, a transient Pages deploy.
+- FILED upstream: connollydavid/host-lint#20 - `host-lint --prose` with no file args silently reports
+  clean (scans nothing) instead of auditing tracked docs; only `host-lint --prose <file>` and
+  `host-lifecycle prose .` catch tropes. Instruct-don't-patch: the tool bug goes upstream, not in-repo.
+
+## plan/0011 + call/0027: one source of truth for the build-artifact hash [2026-07-06]
+
+- Addressed the ARTIFACT_SHA dual-source gap (our responsibility, adlib_gold) properly, not just the
+  stale value. call/0027 (amends call/0007, call/0009) + plan/0011.
+- FIX: the software repo records the expected hash ONCE in a committed `adlibgold.sys.sha256` (sha256sum
+  format). Both reproducible-build workflows verify with `sha256sum -c adlibgold.sys.sha256` and carry NO
+  `ARTIFACT_SHA` env constant; the file is in each workflow's `paths` trigger so a hash bump re-runs the
+  check. Software commits 627f8b7 (checksum file + workflows) and 6329268 (.gitattributes); host re-pinned
+  to 7cb4af3; artifact unchanged (3f70ba6f), still alpha.11, no new tag.
+- GOTCHA (Windows CRLF): the committed .sha256 is LF, but the Windows runner's core.autocrlf converted it
+  to CRLF on checkout, so `sha256sum -c` looked for `adlibgold.sys\r` and FAILED (linux passed). FIX:
+  `.gitattributes` `*.sha256 text eol=lf` (the repo already pins `*.inf eol=crlf`). LESSON: any committed
+  file a shell reads by content on the Windows runner (checksum manifests, scripts) needs an explicit
+  eol=lf in .gitattributes, or autocrlf breaks it. Both build workflows GREEN after the fix.
+- One cross-repo copy remains BY DESIGN: host .host-software `artifact` and software adlibgold.sys.sha256
+  are two records of one value; unifying them (host verifying against the software file) is a
+  host-lifecycle concern for upstream, not patched here (call/0027).
