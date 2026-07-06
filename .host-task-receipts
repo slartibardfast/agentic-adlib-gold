@@ -1,0 +1,14 @@
+[receipt "plan/0011#checksum-file"]
+    disposition = done
+    verify = attested call/0027
+    inputs = software/adlib_gold/main/adlibgold.sys.sha256
+    evidence = adlibgold.sys.sha256 committed in the software repo (627f8b7); sha256sum -c adlibgold.sys.sha256 passes (adlibgold.sys: OK) against the recorded 3f70ba6f per call/0027
+    tool = host-lifecycle@0.37.0
+    recorded = 2026-07-06
+
+[receipt "plan/0011#verify-from-file"]
+    disposition = done
+    verify = attested operator
+    evidence = both workflows verify via sha256sum -c adlibgold.sys.sha256, no ARTIFACT_SHA; .gitattributes pins *.sha256 to LF (6329268); Reproducible Build run 28784736061 and Reproducible Build (Windows) run 28784738916 both green; host re-pinned 7cb4af3
+    tool = host-lifecycle@0.37.0
+    recorded = 2026-07-06
