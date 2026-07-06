@@ -15,3 +15,9 @@
     evidence = synced host-template to e8a9ae1; legacy stamp migrated to baseline 46a1fd2 (0 pending, 0 out of order); tool pins bumped to host-lint v0.12.1 and the host-validated commits; CI actions checkout v4 to v5
     tool = host-lifecycle@0.36.0
     recorded = 2026-07-04
+
+[receipt "upgrade"]
+    disposition = done
+    evidence = synced host-template e8a9ae1 -> 4c6176f; applied ledger 1682d62 (no-op: releases no host-* tool) and 7127dc4 (.bare store already materialized; idempotent) via verify; advanced baseline 46a1fd2 -> 7127dc4; validate + book --check green
+    tool = host-lifecycle@0.37.0
+    recorded = 2026-07-06

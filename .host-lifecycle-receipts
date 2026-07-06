@@ -63,3 +63,9 @@
     reason = no release cut this session; the driver builds reproducibly (call/0015) but no versioned tag was cut
     tool = host-lifecycle@0.36.0
     recorded = 2026-07-04
+
+[receipt "verify"]
+    disposition = done
+    evidence = gate sweep green after upgrade to host-template 4c6176f (baseline 7127dc4): validate, host-lint --all (2 advisory domain numerals only, 0 blocking), prose, reconcile, book --check (22 pages) all clean; software --check no HAZARD (worktree at pin, linux artifact 3f70ba6f verified, deps-bundle matches lock, allium+obligations+specula lanes present); tools/host-lifecycle aligned 7e63d99->bf0eacd (v0.37.0) to match the installed binary
+    tool = host-lifecycle@0.37.0
+    recorded = 2026-07-06
