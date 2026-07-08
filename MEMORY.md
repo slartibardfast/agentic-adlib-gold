@@ -1791,3 +1791,28 @@ OPERATIONAL FACTS:
 - LESSON: a capability has three layers -- chip, board, machine. Verify which layer a
   constraint lives in BEFORE writing the decision record; call/0030 guessed the machine
   layer and was wrong within the hour.
+
+## Replan: configuration-menu allocator reopens duplex; timers surface a missed storm source (call/0032) [2026-07-08]
+
+- Operator design input, two rounds: (1) "can this be register driven instead?" -- YES: the
+  FIFO data port (reg 0Bh) streams under CPU control, ch1 has its OWN port pair (38Eh/38Fh)
+  so ch1 PIO cannot disturb ch0 DMA, and the 16-bit mono render already sustains heavier PIO
+  than duplex needs. (2) "this is not a choice between paths, it is a configuration menu" --
+  channels/transports/service clocks are allocated per stream-open by a pure allocator, not
+  hardcoded pairings. The menu even beats both hardcoded variants: 16-bit PIO render leaves
+  the DMA line idle, so capture takes DMA on ch1.
+- (3) "don't we have 3 MMA timers?" -- YES (T0 16-bit @1.89us; T1 4-bit and T2 16-bit on a
+  12-bit base counter; T2 readable via latch; reg 08h = SBY|T2M|T1M|T0M|STB|ST2|ST1|ST0).
+  Two consequences: (a) Timer 0 becomes the DMA-path Notify clock (mask the FIFO int -- MSK
+  gates only the IRQ line, AIL runs ENB=1+MSK=1 -- and interrupt rate drops ~10x, rate-
+  independent); (b) FOUND A MISSED STORM SOURCE: alpha.12 masked the FIFO ints pre-AEN but
+  NOT reg 08h's timer masks -- same undocumented power-on state, same level-sensitive line
+  the ISR does not clear. One write fixes it (reg 08h = 0x70, timers+base stopped).
+- REPLANNED before cutting .13 (operator instruction): call/0032 accepted (supersedes
+  call/0031; its wiring finding survives as the one-DMA-line menu constraint); plan/0014
+  cut (allocator -> ch1 PIO plumbing incl. ReadMMA1 (missing today) -> dual slots -> timer
+  notify -> attest), gated on plan/0013#ship-retest-build; plan/0013 re-cut: new
+  mask-timer-interrupts task + ship task renamed/re-scoped to alpha.13 (alpha.12 never
+  reached the machine; the USB gets replaced).
+- Decision-chain state: call/0030 (superseded) -> call/0031 (superseded, finding survives)
+  -> call/0032 (accepted). plan/0010 stays withdrawn; plan/0014 replaces it.
