@@ -1816,3 +1816,16 @@ OPERATIONAL FACTS:
   reached the machine; the USB gets replaced).
 - Decision-chain state: call/0030 (superseded) -> call/0031 (superseded, finding survives)
   -> call/0032 (accepted). plan/0010 stays withdrawn; plan/0014 replaces it.
+
+## alpha.13 cut: timer-mask insurance shipped, USB swapped [2026-07-08]
+
+- Replan-first per operator ("replan before cutting .13"): call/0032 + plan/0014 + plan/0013
+  re-cut all landed BEFORE the build. Then the one-write change: reg 08h = MMA_TIMER_MASK_ALL
+  (0x70, T0M|T1M|T2M set, timers + base counter stopped) beside the pre-AEN format-reg masks
+  in ProcessResources (algwave.cpp), constants in algwave.h.
+- alpha.13 = driver e785855, tag v1.0.0-alpha.13, free 21e02d66 (double-build byte-identical),
+  chk 25205eb5. Host re-pinned, both stanzas updated, mask-timer-interrupts receipt recorded
+  (attested call/0032). USB: alpha.12 folder REMOVED (never tested), replaced by
+  E:\adlibgold-v1.0.0-alpha.13\ with the same one-session protocol README.
+- Retest gate (plan/0013#ship-retest-build) now waits on the operator session with alpha.13;
+  plan/0014 (duplex menu) queues behind it.
