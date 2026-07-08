@@ -1829,3 +1829,31 @@ OPERATIONAL FACTS:
   E:\adlibgold-v1.0.0-alpha.13\ with the same one-session protocol README.
 - Retest gate (plan/0013#ship-retest-build) now waits on the operator session with alpha.13;
   plan/0014 (duplex menu) queues behind it.
+
+## alpha.14: deterministic boot state shipped (call/0033, plan/0015) [2026-07-08]
+
+- Operator prompts drove it: "is there any more state not configured on boot?" then "this is
+  not a PnP card" -- on a non-PnP card the driver is the SOLE configurator of everything the
+  mutable EEPROM does not pin. Full SDK-vs-boot-path sweep + detailed plan + review (the
+  review found a SECOND storm window: MIDI subdevice installs after wave, so its unmasked rx
+  interrupt had no handler between AEN-on and MIDI Init).
+- SHIPPED (driver eea6c2a, tag v1.0.0-alpha.14, free 7cece8d0 double-build identical, chk
+  c24733c1): ControlRegReset fixed policy (13h/14h zeroed first -- AEN off until the wave
+  miniport's sole enable; 01h=0 line disengaged; 10h=0x80 silent; 11h=0x08 MFB only: mic OUT
+  of the output mix (it was VolSet to 0xFF at boot!), SPKR off, aux stereo, filters at
+  playback); wave pre-AEN block now RSTs both engines + masks MIDI (0xD4) + FIFO + timers
+  then reg 13h; OPL3 LSI test regs zeroed (note: DDK AD_LSI (0x000) is off by one, first-set
+  test reg is 0x01 -- used literal; AD_LSI2 0x101 correct); SP2 bypass preset downloaded at
+  boot when the module is present.
+- SP2 PAYLOAD AUDIT (task #22, plan/0015#sp2-payload-audit): PASS. sp2.h == SDK Appendix B
+  sample (3 writes/bit, A0 rising=addr latch, falling=value latch, busy-poll/byte); register
+  map + level table (0x1F=0dB .. 0x00=-90dB, bit5 polarity) match sp2modes.h; mode-0 all-zero
+  = -90dB everywhere = true bypass = cold initial-clear. Sample's cli is bank-continuity,
+  moot under our per-byte bank restore; boot download precedes AEN anyway.
+- ALSO: stale pre-commit hook binary (Jul 4 build) blocked commits flagging "Wave, MIDI" as
+  a (wave) tell; the adopted v0.13.0 passes it (rule narrowed upstream). Fixed by copying
+  the adopted binary into .git/hooks (host-lint --install-hooks printed nothing). LESSON:
+  after adopting a new host-lint, refresh the hook binary too.
+- Host re-pinned, all five plan/0015 receipts recorded, USB now E:\adlibgold-v1.0.0-alpha.14
+  (alpha.13 removed untested, same one-session protocol). Retest gate now waits on the
+  alpha.14 session; plan/0014 (duplex menu) queued behind it.
