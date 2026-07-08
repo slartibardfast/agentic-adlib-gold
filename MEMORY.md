@@ -1752,3 +1752,24 @@ OPERATIONAL FACTS:
   -- OCR collapses table columns, and every one of the five bad fields matched an OCR-derived
   reading. When hardware misbehaves asymmetrically (FM sings, PCM silent), diff the
   SUBSYSTEMS' dependencies (DMA? IRQ? mixer?) before diffing the code paths.
+
+## Full duplex descoped: structurally impossible on the Gold 1000 / GoldLib (call/0030) [2026-07-08]
+
+- Operator: "full duplex appears structurally impossible on goldlib" -- basis: DMA channel 0
+  is not available. Verified against the SDK: the chip DOES document simultaneous record and
+  playback (separate DMA per MMA channel; P/R is per-channel outside ILV -- the "channel 0
+  governs P/R/FREQ/GO" clause is interleave-scoped, sdk.txt 11149), but the Gold 1000 selects
+  only DMA {1,2,3} (DMA 0 is Gold 2000-only, SDK 3-7), and on the machine DMA 2 = floppy,
+  DMA 3 = parallel port, leaving ONE free line. No second simultaneous audio DMA line exists
+  on the target. Chip-level degradations recorded too: duplex is mono+mono (stereo ILV
+  consumes both channels), capture on the freed channel hears one input side, per-channel
+  antialiasing filter serves ADC or DAC never both.
+- DISPOSITION: call/0030 accepted; plan/0010 withdrawn (build sequence removed from the task
+  graph -- zero receipts existed -- design record kept; git history preserves the sequence for
+  a hypothetical Gold 2000 port); PLAN.md annotated. NO driver change: NewStream already
+  rejects the second direction (STATUS_INVALID_DEVICE_REQUEST, algwave.cpp) -- that is now the
+  permanent contract. The rejection comment still cites plan/0008; it moves to cite call/0030
+  on the next driver change, never in a rebuild of its own.
+- Feature-complete scope (task list) shrinks accordingly: remaining hardware-facing items are
+  the alpha.12 retest (audible PCM + garble A/B), detection-non-fatal (Code 10 wall), the
+  sp2modes payload audit, and reg-13h power-restore.
