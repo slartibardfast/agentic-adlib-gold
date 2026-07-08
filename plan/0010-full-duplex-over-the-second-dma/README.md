@@ -1,11 +1,12 @@
 # 0010 Full-duplex over the second DMA channel
 
-**Withdrawn**, superseded by `call/0030`. The Gold 1000 class (the GoldLib included) cannot
-select DMA 0, and the machine's remaining 8-bit lines belong to the floppy controller and the
-parallel port, so the second simultaneous audio DMA line this milestone needs does not exist
-on the target. The build sequence was removed from the task graph before any task started (no
-receipts); this file's prior revision in git history preserves it for a hypothetical Gold
-2000 port. The half-duplex `NewStream` rejection is the permanent contract.
+**Withdrawn**, superseded by `call/0031` (which corrects and supersedes `call/0030`). The
+documentation supports duplex on the original card and the machine has two free DMA lines,
+but the GoldLib's 8-bit-slot board wiring carries one DRQ/DACK pair, so reg 14h's channel-1
+select has nothing to drive and the second simultaneous audio DMA line cannot reach the bus.
+The build sequence was removed from the task graph before any task started (no receipts);
+this file's prior revision in git history preserves it for hardware that wires the second
+path. The half-duplex `NewStream` rejection is the permanent contract.
 
 The design context below is kept as the record of what was intended and why.
 
