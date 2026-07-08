@@ -27,3 +27,28 @@
     evidence = both build workflows reproduced 3f70ba6f on e487e88: Reproducible Build run 28786930210 (linux) and Reproducible Build (Windows) run 28786930032 both green; host re-pinned 0530877
     tool = host-lifecycle@0.37.0
     recorded = 2026-07-06
+
+[receipt "plan/0013#fix-bitfields"]
+    disposition = done
+    verify = gcc -o /tmp/wavereg_test tests/wavereg_test.c -I. && /tmp/wavereg_test
+    inputs = software/adlib_gold/main/common.h, software/adlib_gold/main/wavereg.h, software/adlib_gold/main/tests/wavereg_test.c
+    digest = ab3fadc8da0d4e1720f8bc8d231f74a4fabbcf0d,a86888d09711d00f273221d46662849a6deb92b5,602abde3beff83c6751dc35c039db6576c674939
+    evidence = gcc -o /tmp/wavereg_test tests/wavereg_test.c -I. && /tmp/wavereg_test: all checks passed at 546c343
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-08
+
+[receipt "plan/0013#outputmode-selfheal"]
+    disposition = done
+    verify = attested call/0029
+    inputs = software/adlib_gold/main/common.cpp
+    evidence = attested call/0029: restore normalizes OutputMode, preserves MU (common.cpp, commit 546c343)
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-08
+
+[receipt "plan/0013#mma-hardening"]
+    disposition = done
+    verify = attested call/0029
+    inputs = software/adlib_gold/main/algwave.cpp
+    evidence = attested call/0029: AIL prime restored, format regs masked before AEN, checked stop-line diagnostics (algwave.cpp, commit 546c343)
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-08
