@@ -1,6 +1,6 @@
 # Full duplex is out of scope on the Gold 1000 class target
 
-- Status: accepted
+- Status: superseded by call/0031
 - Scope: software
 - Date: 2026-07-08
 
