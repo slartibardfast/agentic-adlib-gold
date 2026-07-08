@@ -60,3 +60,43 @@
     evidence = attested call/0032: reg 08h written MMA_TIMER_MASK_ALL (0x70) before ConfigureDmaAndIrq (algwave.cpp, commit e785855)
     tool = host-lifecycle@0.40.1
     recorded = 2026-07-08
+
+[receipt "plan/0015#control-policy"]
+    disposition = done
+    verify = attested call/0033
+    inputs = software/adlib_gold/main/common.cpp
+    evidence = attested call/0033: reg 13h/14h zeroed first, reg 01h/10h/11h fixed policy in ControlRegReset (common.cpp, commit eea6c2a)
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-08
+
+[receipt "plan/0015#mma-boot-reset"]
+    disposition = done
+    verify = attested call/0033
+    inputs = software/adlib_gold/main/algwave.cpp, software/adlib_gold/main/algwave.h
+    evidence = attested call/0033: RST both engines + MIDI mask 0xD4 + FIFO/timer masks before the sole AEN enable (algwave.cpp, commit eea6c2a)
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-08
+
+[receipt "plan/0015#opl3-test-regs"]
+    disposition = done
+    verify = attested call/0033
+    inputs = software/adlib_gold/main/fmsynth.cpp
+    evidence = attested call/0033: LSI test regs 0x001/0x101 zeroed in Opl3_BoardReset (fmsynth.cpp, commit eea6c2a)
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-08
+
+[receipt "plan/0015#sp2-payload-audit"]
+    disposition = done
+    verify = attested call/0033
+    inputs = software/adlib_gold/main/sp2modes.h, software/adlib_gold/main/common.cpp
+    evidence = attested call/0033: protocol and payload verified against SDK Appendix B: register map, level table (0x1F=0dB, 0x00=-90dB), 3-writes-per-bit framing, A0 latch edges; verdict PASS
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-08
+
+[receipt "plan/0015#sp2-boot-off"]
+    disposition = done
+    verify = attested call/0033
+    inputs = software/adlib_gold/main/algtopo.cpp
+    evidence = attested call/0033: topology Init downloads the bypass preset when the module is present (algtopo.cpp, commit eea6c2a)
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-08
