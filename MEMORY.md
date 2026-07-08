@@ -1773,3 +1773,21 @@ OPERATIONAL FACTS:
 - Feature-complete scope (task list) shrinks accordingly: remaining hardware-facing items are
   the alpha.12 retest (audible PCM + garble A/B), detection-non-fatal (Code 10 wall), the
   sp2modes payload audit, and reg-13h power-restore.
+
+## CORRECTION: the full-duplex blocker is GoldLib board wiring, not DMA availability (call/0031) [2026-07-08]
+
+- Corrects the previous entry (call/0030's rationale). Operator: DMA 1 AND 3 are free on the
+  machine, so line contention was WRONG; and no DMA-0 requirement exists -- reg 14h selects
+  lines 1-3 on a Gold 1000, the DOS toolkit ships CtSelectDMA0/1ChannelSampChan (SDK 5-16),
+  and the Yamaha overview names separate-DMA-per-channel as the designed duplex method. The
+  documentation says the ORIGINAL card can duplex (mono+mono, degraded input side).
+- The REAL blocker (operator attestation): the GoldLib's 8-bit-slot board wiring carries one
+  DRQ/DACK pair, so reg 14h's channel-1 select has nothing to drive. Note the 8-bit ISA
+  connector has no DRQ0 pin at all (DRQ0/DACK0 are on the 16-bit extension), which is WHY
+  DMA 0 is Gold-2000-only -- the model split is a connector fact.
+- call/0031 accepted (supersedes call/0030, same outcome: descope stands, plan/0010 stays
+  withdrawn, NewStream rejection permanent). Falsifiable: a one-boot checked-build probe
+  (reg 14h -> DMA 3, DEN1, arm channel, watch the counter) would supersede it if positive.
+- LESSON: a capability has three layers -- chip, board, machine. Verify which layer a
+  constraint lives in BEFORE writing the decision record; call/0030 guessed the machine
+  layer and was wrong within the hour.
