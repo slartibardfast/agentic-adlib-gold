@@ -1710,3 +1710,45 @@ OPERATIONAL FACTS:
   those may become blocking; re-run prose then and clean any newly-flagged docs.
 - The commit hook blocks only on rc 1 (confirmed tell); rc 3 (warning) is advisory/print-only, so
   v0.13.0's exit-3 on the pre-existing advisory numerals does not block commits.
+
+## alpha.12: five control-chip bitfields were one bit off the register map (call/0029) [2026-07-08]
+
+- The alpha.11 retest (BX440.LOG, dxdiag on the Win2000 GoldLib) heard FM MIDI (garbled,
+  tune recognizable) but NO PCM. The trace showed every software stage healthy, KS volume fix
+  working (FM VolSet -> 0xFF audible), streams reaching RUN, MMA programmed with the exact
+  reference values -- and nothing between RUN and stop: no ISR evidence, position-starved 1s
+  restart loop. FM needs neither DMA nor interrupts; PCM needs both. That split was the clue.
+- ROOT (proven from the SDK PDF register-map FIGURES, pages 7-3/7-9 -- the OCR text collapses
+  the tables): reg 13h is DEN0 | DMA SEL (D6-D4) | AEN (D3) | INT SEL (D2-D0). The driver had
+  DMA SEL at D6-D5 and AEN at D4, so its boot write 0xB3 = DMA line 3 (PnP granted 1) + audio
+  interrupts DISABLED. Correct for IRQ 7/DMA 1 is 0x9B. A full audit found the same
+  one-bit-shift class in reg 08h (ST-MONO D4-D3, SOURCE D2-D0; default 0xC4 decoded as
+  forced-mono right-only; correct 0xCE), reg 00h options (TEL=D4, SUR=D5, SCSI=D6 -- the
+  GoldLib HAS the surround module, options 0xD1, and the driver read it backwards, hiding the
+  SP2 nodes), reg 11h FLT0/FLT1 (swapped, latent), reg 14h, and swapped model-ID names.
+  Verified CORRECT: status register/ISR bits+polarity, banks 0xFF/0xFE, MMA status byte, all
+  volume/tone encodings, all timing stalls. MMA reg 9/12 field math proven by construction
+  (composed bytes equal the attested AIL reference values).
+- Adversarial review added: (1) registry restore replays saved bytes verbatim, so the reg-08h
+  fix alone would be INERT on the test machine -- restore now rebuilds OutputMode's fields and
+  preserves only MU (call/0025's self-heal shape); (2) restored the AIL-attested 4-byte FIFO
+  prime before GO (the omission was justified from the "working" 8-bit mono path never proven
+  on hardware); (3) both MMA format regs masked before the reg-13h write -- AEN has never been
+  live, FIFO flags are level-sensitive, an unmasked idle FIFO could storm at StartDevice;
+  (4) checked build counts ISR entries and logs "SetState RUN->PAUSE: isr= dmapos= mma=" so a
+  still-silent run localizes DRQ vs IRQ vs analog in ONE log; (5) wavereg test now pins
+  ABSOLUTE select bytes -- the old shift-relative checks passed even with the wrong shift.
+- RETRACTED: my percussion hypothesis for the MIDI garble. fmsynth has proper per-note drum
+  patches (DDK pattern, note+128). Garble ranking now: 4-op 0x104 churn into release tails
+  (284 flips/12s, alloc/release flips ignore decaying partners) > clipping (master restored
+  to +6dB) > checked-build logging latency. Discriminator rides with alpha.12: free build by
+  ear at ~75% master.
+- SHIPPED alpha.12 = driver 546c343, tag v1.0.0-alpha.12, free 8c7f7647 (double-build
+  byte-identical), chk 28aa291b; host re-pinned, both stanzas updated; plan/0013 + call/0029;
+  task receipts recorded (ship task open pending operator retest). Follow-ups queued: sp2modes
+  YM7128 payload audit (surround is now detectable, presets never ran on hardware); reg 13h
+  restore on D0 power-up (shadow covers 0x04-0x0F only).
+- LESSON (extends call/0025's): decode register layouts from the PDF FIGURES, never OCR text
+  -- OCR collapses table columns, and every one of the five bad fields matched an OCR-derived
+  reading. When hardware misbehaves asymmetrically (FM sings, PCM silent), diff the
+  SUBSYSTEMS' dependencies (DMA? IRQ? mixer?) before diffing the code paths.
