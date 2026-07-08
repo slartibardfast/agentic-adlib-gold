@@ -47,14 +47,27 @@ Restore the AIL-attested four-byte FIFO prime before GO on the render DMA paths;
 MMA format registers before the reg-13h write so the first-ever AEN enable cannot storm; add
 the checked-only ISR counter and RUN-to-PAUSE stop line (ISR count, DMA position, MMA status).
 
-### Ship alpha.12 and retest in one session {#ship-alpha12}
+### Mask the MMA timer interrupts before AEN {#mask-timer-interrupts}
 
-- depends: #outputmode-selfheal, #mma-hardening
+- depends: #mma-hardening
+- verify: attested call/0032
+- inputs: software/adlib_gold/main/algwave.cpp, software/adlib_gold/main/algwave.h
+
+Reg 08h's timer masks are the interrupt source the alpha.12 insurance missed: their power-on
+state is as undocumented as the FIFO masks', and a running unmasked timer asserts the same
+level-sensitive line the ISR does not clear. Write reg 08h with all three timers masked and
+stopped (base counter included) beside the existing pre-AEN format-register masking.
+
+### Ship the retest build and run one session {#ship-retest-build}
+
+- depends: #outputmode-selfheal, #mma-hardening, #mask-timer-interrupts
 - verify: attested operator
 
-Both reproducible builds byte-identical with a valid checksum, `adlibgold.sys.sha256` and both
-`.host-software` build stanzas updated, tag `v1.0.0-alpha.12`, host re-pinned, USB packaged
-with the one-session protocol: checked build first (dxdiag sound + music tests, DebugView log),
+Alpha.12 shipped the bitfield fixes but never reached the test machine; alpha.13 supersedes
+it with the timer masking above, so the session runs on the fully insured build. Both
+reproducible builds byte-identical with a valid checksum, `adlibgold.sys.sha256` and both
+`.host-software` build stanzas updated, an annotated tag, host re-pinned, USB packaged with
+the one-session protocol: checked build first (dxdiag sound + music tests, DebugView log),
 then the free build by ear at about 75 percent master volume (garble A/B for logging overhead
 and clipping). The checked log's stop lines answer PCM audibility with built-in localization.
 
