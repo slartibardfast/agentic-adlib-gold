@@ -1,5 +1,14 @@
 # 0010 Full-duplex over the second DMA channel
 
+**Withdrawn**, superseded by `call/0030`. The Gold 1000 class (the GoldLib included) cannot
+select DMA 0, and the machine's remaining 8-bit lines belong to the floppy controller and the
+parallel port, so the second simultaneous audio DMA line this milestone needs does not exist
+on the target. The build sequence was removed from the task graph before any task started (no
+receipts); this file's prior revision in git history preserves it for a hypothetical Gold
+2000 port. The half-duplex `NewStream` rejection is the permanent contract.
+
+The design context below is kept as the record of what was intended and why.
+
 The card records and plays digital audio, but not at the same time: `NewStream` rejects the
 second direction while one is open (`STATUS_INVALID_DEVICE_REQUEST`). That was the right
 interim behaviour while the driver had one DMA channel, but the hardware has two. The YMZ263
@@ -31,58 +40,6 @@ reg-14h DMA-select derivation are pure, tested helpers. The behaviour rule (a re
 capture stream may coexist, each on its own DMA channel) goes into `wave.allium`, and the
 resource claim (two DMA channels) is explicit in the INF and attested on the GoldLib, which
 has the two-DMA control chip. The build stays byte-reproducible.
-
-## Build sequence
-
-### Claim a second DMA channel in the INF {#claim-second-dma}
-
-- verify: attested operator
-- inputs: software/adlib_gold/main/adlibgold.inf
-
-Add a logical configuration that claims two DMA channels (two `DMAConfig` lines within one
-`LogConfig`), offered at a lower priority than the single-DMA configuration, so an operator
-who wants full-duplex assigns a second channel while a half-duplex install still works with
-one. CRLF and ASCII stay intact.
-
-### Allocate the second DMA channel {#allocate-second-dma}
-
-- depends: #claim-second-dma
-- verify: cargo-free; attested operator
-
-When the resource list carries two DMA channels, the adapter allocates both and hands the
-wave miniport a second `PDMACHANNELSLAVE` alongside the first. With one channel present the
-miniport keeps its current single-channel behaviour, so a half-duplex card is unaffected.
-
-### Let a render and a capture stream coexist {#dual-stream}
-
-- depends: #allocate-second-dma
-- verify: cc -Werror the wave test and run it
-
-Replace the single active-stream slot and the full-duplex rejection with a render slot and a
-capture slot. `NewStream` admits the second direction when the second DMA channel exists and
-both formats are mono; it still refuses a second direction when only one DMA channel is
-present or when either side is stereo. The direction-to-channel mapping (render to channel 0,
-capture to channel 1) is a pure, tested helper.
-
-### Program the second DMA channel and its MMA channel {#second-channel}
-
-- depends: #dual-stream
-- verify: attested operator
-
-The capture stream programs MMA channel 1 (via `WriteMMA1`) and control register 14h with its
-DMA-select bits (derived in a pure helper mirroring `WaveDmaSelectBits` for the first channel)
-and the enable bit, and starts its own DMA channel. The render stream keeps channel 0. The
-shared sampling interrupt is decoded per channel from the MMA status, so each stream is
-serviced from its own FIFO ready flag.
-
-### Service both streams from the shared interrupt {#service-both}
-
-- depends: #second-channel
-- verify: attested operator
-
-The ISR advances whichever direction its channel's status flags, and notifies each stream's
-service group independently. Then the milestone is complete: mono render and mono capture run
-together over the two DMA channels, attested on the GoldLib.
 
 ## Depends on
 

@@ -16,7 +16,7 @@ synth subsystems working on Windows 98SE, proven by repeatable dual-hosted build
 - [0007 complete driver, end-to-end](0007-complete-driver-end-to-end/README.md)
 - [0008 harden the driver for production and lock each fix behind a spec obligation](0008-harden-driver-for-production/README.md)
 - [0009 implement four-operator FM voices from the on-disk timbre bank](0009-implement-four-operator-fm/README.md)
-- [0010 full-duplex over the second DMA channel](0010-full-duplex-over-the-second-dma/README.md)
+- [0010 full-duplex over the second DMA channel](0010-full-duplex-over-the-second-dma/README.md) (withdrawn, `call/0030`)
 - [0011 one source of truth for the build-artifact hash](0011-single-source-build-artifact-hash/README.md)
 - [0012 move the Wine build prefix out of the worktree](0012-wine-prefix-outside-the-worktree/README.md)
 - [0013 correct the control-chip bitfield layouts](0013-control-chip-bitfield-layouts/README.md)
