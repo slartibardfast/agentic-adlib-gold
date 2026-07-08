@@ -1857,3 +1857,31 @@ OPERATIONAL FACTS:
 - Host re-pinned, all five plan/0015 receipts recorded, USB now E:\adlibgold-v1.0.0-alpha.14
   (alpha.13 removed untested, same one-session protocol). Retest gate now waits on the
   alpha.14 session; plan/0014 (duplex menu) queued behind it.
+
+## alpha.14 retest: PCM audible at last (loops a small sample); MIDI march-stepping diagnosed [2026-07-08]
+
+- OPERATOR RESULT: PCM made sound for the first time -- but "a single small sample repeated".
+  MIDI still wrong; clipping contributes but is not all of it ("odd march stepping? not quite
+  drums"). PCM audio content looping proves DRQ + DMA + FIFO + DAC + analog path ALL work;
+  the reg-13h 0x9B fix landed. What loops is the WaveCyclic prefill: portcls never copied new
+  data into the cyclic buffer, so the auto-init DMA replays it. The notification loop (ISR ->
+  Notify -> GetPosition -> copy) is dead somewhere.
+- CODE SIDE OF THE IRQ CHAIN VERIFIED CLEAN against the SDK OCR: INT SEL A table (sdk.txt
+  :8526) says 3 -> IRQ 7, matching CTRL_IRQ_SEL_7=0x03; ISR claim polarity active-LOW is
+  confirmed twice (sdk.txt :7805 "a zeroed bit indicates", Yamaha GSS :12320); the alpha.14
+  boot masks are benign (reg 0Dh 0xD4 = MIDI/overrun masks only; FIFO INT lives in reg 0Ch
+  MSK, left unmasked at stream start); the AIL trace ran ch0 FIFO INT unmasked in DMA mode,
+  so DMA-mode FIFO interrupts are real on silicon. Discriminator needed: the checked build's
+  stop line (isr= dmapos= mma=) in the session's DebugView log. isr=0 with dmapos moving =
+  IRQ 7 routing dead on the machine (LPT1 line; contingency: IRQ 5 via INF LogConfig, no
+  driver change -- ConfigureDmaAndIrq maps whatever the resource list carries).
+- MIDI ROOT CAUSE FOUND (code-anchored): 4-op connection-select churn. Opl3_NoteOff
+  (fmsynth.cpp:1604) clears the pair's reg-0x104 bit the instant a 4-op note keys off, while
+  its release tail still sounds; the pair splits mid-decay, the secondary half becomes an
+  independent 2-op channel at its STALE frequency/topology -- a thump or wrong-pitch blip at
+  EVERY 4-op note boundary (note-on side mirrors it at fmsynth.cpp:1867). dxdiag music =
+  constant note boundaries = "march stepping". The DDK 2-op sample never touched 0x104; this
+  is plan/0009's dynamic pairing. FIX DESIGN: defer the unpair to reallocation -- keep b4Op
+  and the 0x104 bit through release (tails decay in correct topology); protect only LIVE
+  pairs (bOn) in Opl3_FindEmptySlot so released pairs stay stealable; split safely at alloc
+  time (silence both channels: key-off + max TL, then flip the bit, then program).
