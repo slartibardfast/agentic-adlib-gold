@@ -100,3 +100,12 @@
     evidence = attested call/0033: topology Init downloads the bypass preset when the module is present (algtopo.cpp, commit eea6c2a)
     tool = host-lifecycle@0.40.1
     recorded = 2026-07-08
+
+[receipt "plan/0013#fix-bitfields"]
+    disposition = done
+    verify = gcc -o /tmp/wavereg_test software/adlib_gold/main/tests/wavereg_test.c -I software/adlib_gold/main && /tmp/wavereg_test
+    inputs = software/adlib_gold/main/common.h, software/adlib_gold/main/wavereg.h, software/adlib_gold/main/tests/wavereg_test.c
+    digest = 831141d91604065fa640e598323563ba3b851af8,a86888d09711d00f273221d46662849a6deb92b5,602abde3beff83c6751dc35c039db6576c674939
+    evidence = re-derived 2026-07-08
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-08

@@ -19,7 +19,7 @@ session.
 
 ### Fix the five bitfield layouts {#fix-bitfields}
 
-- verify: gcc -o /tmp/wavereg_test tests/wavereg_test.c -I. && /tmp/wavereg_test
+- verify: gcc -o /tmp/wavereg_test software/adlib_gold/main/tests/wavereg_test.c -I software/adlib_gold/main && /tmp/wavereg_test
 - inputs: software/adlib_gold/main/common.h, software/adlib_gold/main/wavereg.h, software/adlib_gold/main/tests/wavereg_test.c
 
 Registers 13h/14h (DMA SEL at D6-D4, AEN at D3, boot write becomes 0x9B), 08h (ST-MONO at

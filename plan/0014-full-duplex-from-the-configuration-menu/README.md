@@ -29,7 +29,7 @@ pairings of their own.
 
 ### Derive the allocator from the menu {#allocator}
 
-- verify: gcc -o /tmp/wavealloc_test tests/wavealloc_test.c -I. && /tmp/wavealloc_test
+- verify: gcc -o /tmp/wavealloc_test software/adlib_gold/main/tests/wavealloc_test.c -I software/adlib_gold/main && /tmp/wavealloc_test
 - inputs: software/adlib_gold/main/wavereg.h, software/adlib_gold/main/tests/wavealloc_test.c
 - depends: plan/0013#ship-retest-build
 
