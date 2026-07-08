@@ -1,6 +1,6 @@
 # Full duplex stays out of scope: the GoldLib does not wire a second DMA path
 
-- Status: accepted
+- Status: superseded by call/0032
 - Scope: software
 - Date: 2026-07-08
 
