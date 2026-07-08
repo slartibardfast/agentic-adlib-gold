@@ -52,3 +52,11 @@
     evidence = attested call/0029: AIL prime restored, format regs masked before AEN, checked stop-line diagnostics (algwave.cpp, commit 546c343)
     tool = host-lifecycle@0.40.1
     recorded = 2026-07-08
+
+[receipt "plan/0013#mask-timer-interrupts"]
+    disposition = done
+    verify = attested call/0032
+    inputs = software/adlib_gold/main/algwave.cpp, software/adlib_gold/main/algwave.h
+    evidence = attested call/0032: reg 08h written MMA_TIMER_MASK_ALL (0x70) before ConfigureDmaAndIrq (algwave.cpp, commit e785855)
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-08
