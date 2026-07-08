@@ -60,11 +60,12 @@ stopped (base counter included) beside the existing pre-AEN format-register mask
 
 ### Ship the retest build and run one session {#ship-retest-build}
 
-- depends: #outputmode-selfheal, #mma-hardening, #mask-timer-interrupts
+- depends: #outputmode-selfheal, #mma-hardening, #mask-timer-interrupts, plan/0015#control-policy, plan/0015#mma-boot-reset, plan/0015#opl3-test-regs
 - verify: attested operator
 
-Alpha.12 shipped the bitfield fixes but never reached the test machine; alpha.13 supersedes
-it with the timer masking above, so the session runs on the fully insured build. Both
+Alpha.12 and alpha.13 shipped the bitfield fixes and interrupt insurance but never reached
+the test machine; alpha.14 supersedes both with `plan/0015`'s deterministic boot state, so
+the session runs with the filter direction and mic routing pinned rather than undefined. Both
 reproducible builds byte-identical with a valid checksum, `adlibgold.sys.sha256` and both
 `.host-software` build stanzas updated, an annotated tag, host re-pinned, USB packaged with
 the one-session protocol: checked build first (dxdiag sound + music tests, DebugView log),

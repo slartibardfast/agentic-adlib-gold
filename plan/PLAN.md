@@ -21,3 +21,4 @@ synth subsystems working on Windows 98SE, proven by repeatable dual-hosted build
 - [0012 move the Wine build prefix out of the worktree](0012-wine-prefix-outside-the-worktree/README.md)
 - [0013 correct the control-chip bitfield layouts](0013-control-chip-bitfield-layouts/README.md)
 - [0014 full duplex from the configuration menu](0014-full-duplex-from-the-configuration-menu/README.md)
+- [0015 the driver owns boot state](0015-the-driver-owns-boot-state/README.md)
