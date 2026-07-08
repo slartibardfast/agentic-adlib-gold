@@ -19,3 +19,4 @@ synth subsystems working on Windows 98SE, proven by repeatable dual-hosted build
 - [0010 full-duplex over the second DMA channel](0010-full-duplex-over-the-second-dma/README.md)
 - [0011 one source of truth for the build-artifact hash](0011-single-source-build-artifact-hash/README.md)
 - [0012 move the Wine build prefix out of the worktree](0012-wine-prefix-outside-the-worktree/README.md)
+- [0013 correct the control-chip bitfield layouts](0013-control-chip-bitfield-layouts/README.md)
