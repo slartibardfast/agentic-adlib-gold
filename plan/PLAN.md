@@ -22,3 +22,4 @@ synth subsystems working on Windows 98SE, proven by repeatable dual-hosted build
 - [0013 correct the control-chip bitfield layouts](0013-control-chip-bitfield-layouts/README.md)
 - [0014 full duplex from the configuration menu](0014-full-duplex-from-the-configuration-menu/README.md)
 - [0015 the driver owns boot state](0015-the-driver-owns-boot-state/README.md)
+- [0016 notification liveness and stable four-op pairing](0016-notification-liveness-and-four-op-pairing/README.md)
