@@ -61,10 +61,15 @@ captured before it.
 - verify: gcc -o /tmp/mmastatus_test software/adlib_gold/main/tests/mmastatus_test.c -I software/adlib_gold/main && /tmp/mmastatus_test
 - inputs: software/adlib_gold/main/common.cpp, software/adlib_gold/main/algwave.cpp, software/adlib_gold/main/mmastatus.h, software/adlib_gold/main/tests/mmastatus_test.c
 
-Implement what the model requires: a bounded drain that re-reads the MMA status
-until no flag is pending, and a mask-then-unmask of the FIFO interrupt so the
-line drops and a fresh edge is regenerated. Pure decode logic extends
-`mmastatus.h` and its test; the checked-build stop line stays for the session.
+What the model required turned out to be a different service clock, not a
+hardened read sequence: the DMA transport runs Timer 0 at a 10 ms cadence
+(started with GO, stopped with the stream), the ISR re-arms it on each elapse
+(the status flags are level-sensitive, so the re-arm is what drops the line for
+the next edge) and notifies, and the DMA paths' FIFO threshold interrupts are
+masked, since they never fire while auto-initialize DMA keeps the FIFOs fed.
+PIO streams keep FIFO-driven service because their FIFOs genuinely drain. Pure
+decode extends `mmastatus.h` and its test, `wave.allium` gains the timer service
+rule, and the checked-build stop line stays for the session.
 
 ### Keep four-op pairs stable through release {#four-op-pairing}
 
