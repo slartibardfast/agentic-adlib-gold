@@ -134,3 +134,12 @@
     evidence = TLC verdict: naive design starves in the world where auto-initialize DMA keeps the FIFO above threshold and the FIFO interrupt never fires (counterexample: initial state stuttering, zero deliveries, the retest symptom); hardened design (MMA timer service clock, DMA-path FIFO interrupt masked) is live in all four semantics worlds, complete state space of 120 states
     tool = host-lifecycle@0.40.1
     recorded = 2026-07-09
+
+[receipt "plan/0016#isr-hardening"]
+    disposition = done
+    verify = gcc -o /tmp/mmastatus_test software/adlib_gold/main/tests/mmastatus_test.c -I software/adlib_gold/main && /tmp/mmastatus_test
+    inputs = software/adlib_gold/main/common.cpp, software/adlib_gold/main/algwave.cpp, software/adlib_gold/main/mmastatus.h, software/adlib_gold/main/tests/mmastatus_test.c
+    digest = da42aa02660e3f614c8351bd0f21ea6ce8602946,e89523c39891e11df93a0d8a09e09543e1035fce,c01ad5831cc161e99d0bbfaf49d3a10f1f9845da,bf060ad04a2e8ccb9537e4ced49bf4d379028da7
+    evidence = Timer 0 is the DMA transport's service clock at a 10 ms cadence (reload 0x14AC at 1.88964 us per tick); the ISR re-arms it on each elapse and the DMA paths' FIFO threshold interrupts are masked; mmastatus_test passes; wave.allium timer rule dispositioned; the Wine reproducible build compiles clean (artifact bc976e0b)
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-09
