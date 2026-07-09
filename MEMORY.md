@@ -1885,3 +1885,35 @@ OPERATIONAL FACTS:
   and the 0x104 bit through release (tails decay in correct topology); protect only LIVE
   pairs (bOn) in Opl3_FindEmptySlot so released pairs stay stealable; split safely at alloc
   time (silence both channels: key-off + max TL, then flip the bit, then program).
+
+## 2026-07-09 — TLC verdict: the DMA-mode FIFO interrupt is not a service clock; notify on an MMA timer
+
+- The alpha.14 loop-forever symptom is now machine-explained. `spec/NotifyLiveness.tla`
+  (driver repo, specula lane, `call/0034`, `plan/0016`) models the notification loop
+  with the SDK-open semantics chosen nondeterministically. Verdict: the shipped design
+  (notification riding the FIFO threshold interrupt) is **live in every world where
+  that interrupt fires** — so, with the code audited clean, the one consistent world
+  is `fifoFires = FALSE`: **auto-initialize DMA refills the FIFO ahead of the
+  threshold, so the DMA-mode FIFO interrupt never fires during healthy playback.**
+  Counterexample trace: the initial state stutters forever (zero deliveries, zero
+  refills) — exactly isr=0 with looping audio.
+- Grounding: SDK MMA programming tips (sdk.txt:11346-11348) read the DMA-mode FIFO
+  interrupt as an end-of-transfer indicator ("double-check ... by reading the DMA
+  controller's counters ... data transfer is over"). The MMA, unlike the SB16 DSP,
+  has no block-interrupt register; its periodic service clock is the MMA timers.
+  The earlier inference from the AIL trace ("FIFO threshold interrupts fire in DMA
+  mode") over-read the register dump: an unmasked bit proves intent, not delivery.
+- The hardened design — **MMA Timer 0 as the notification clock, the DMA stream's
+  FIFO interrupt masked** (plan/0014's timer-notify shape pulled forward) — is live
+  in all four worlds (TLC, complete space, 120 states). No drain loop or mask-toggle
+  needed: the timer flag's documented read-to-clear suffices. This narrows
+  plan/0016#isr-hardening to: program/start Timer 0 at stream RUN, stop it at PAUSE,
+  dispatch the timer flag to Notify, mask the FIFO interrupt on DMA-transport
+  streams (PIO paths keep FIFO-driven service — their FIFO genuinely drains).
+- If the hardened build still loops the prefill on hardware, the surviving hypothesis
+  is physical IRQ-7 delivery on that machine (`call/0034` residue); the operator
+  rejected an INF alternate-config fallback, so that would be a deliberate INF edit.
+- Also this session: corrected two stale CLAUDE.md project-specific bullets (Build
+  repro-exempt story retired by call/0015; Specs lanes live since call/0013), recorded
+  the plan/0013#ship-retest-build receipt from the operator's verbal report, and cut
+  plan/0016 with tlc-harness + notify-spec already receipted done.

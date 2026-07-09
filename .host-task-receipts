@@ -116,3 +116,21 @@
     evidence = attested operator: the retest session ran on the target machine; PCM was audible for the first time but looped the stream prefill (the interrupt notification leg never refilled the cyclic buffer); FM MIDI played with rhythmic garble at four-operator note boundaries; the DebugView log was not captured
     tool = host-lifecycle@0.40.1
     recorded = 2026-07-09
+
+[receipt "plan/0016#tlc-harness"]
+    disposition = done
+    verify = sh software/adlib_gold/main/spec/tlc.sh ChipTiming
+    inputs = software/adlib_gold/main/spec/tlc.sh
+    digest = 98ce5289531a0755090523c53c5025703bd1885b
+    evidence = spec/tlc.sh runs the pinned tla2tools v1.8.0 (sha256-verified, cached) exactly as the Timing CI lane does; baseline ChipTiming and BankAccess both pass locally
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-09
+
+[receipt "plan/0016#notify-spec"]
+    disposition = done
+    verify = sh software/adlib_gold/main/spec/tlc.sh NotifyLiveness
+    inputs = software/adlib_gold/main/spec/NotifyLiveness.tla, software/adlib_gold/main/spec/NotifyLiveness.cfg
+    digest = 5dba16613aa5bbaf38c6e5513dc9e5b8777c556d,47150e647060c75400c2f39059550921620acddf
+    evidence = TLC verdict: naive design starves in the world where auto-initialize DMA keeps the FIFO above threshold and the FIFO interrupt never fires (counterexample: initial state stuttering, zero deliveries, the retest symptom); hardened design (MMA timer service clock, DMA-path FIFO interrupt masked) is live in all four semantics worlds, complete state space of 120 states
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-09
