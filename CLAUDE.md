@@ -744,13 +744,17 @@ This host governs one piece of software, recorded in `.host-software`.
   SDK. It is embedded as a bare store with worktrees under `software/adlib_gold/`,
   pinned in `.host-software`. It came under the methodology as pre-existing
   software rather than a greenfield start (`call/0001`).
-- **Build.** The driver builds with the Windows WDK toolchain. This host runs on
-  Linux under WSL, which cannot reproduce that build, so the component carries
-  `repro-exempt` citing `call/0002` until it converges on a reproducible recipe.
+- **Build.** The driver builds with the Windows 2000 DDK toolchain, reproducibly
+  on both recorded hosts (`call/0015`, superseding the interim `repro-exempt` of
+  `call/0002`): the Linux line builds under Wine, the Windows line natively, and
+  the two `adlibgold.sys` artifacts are byte-identical at the recorded hash in
+  `.host-software`.
 - **Docs.** The driver publishes its own manual as an mdBook at
   `https://slartibardfast.github.io/adlib_gold/` from its own repository. That
   site stays in place; this host publishes a separate mdBook of its own rooms and
   links out to the driver site (`call/0003`).
-- **Specs.** No behavioural (`.allium`) or timing (`.tla`) spec exists yet, so no
-  verification lane is wired for the software. When a spec is authored, its lane
-  goes in the driver's own CI, as this manual requires.
+- **Specs.** Behavioural (`.allium`) and timing (`.tla`) specs live with the code
+  in the driver repository's `spec/` directory, each with its lane in the driver's
+  own CI as this manual requires: the allium workflow gates every `.allium` spec
+  with its `.obligations` manifest, and the specula workflow model-checks every
+  `.tla` with TLC. The timing lane arrived with `call/0013`.
