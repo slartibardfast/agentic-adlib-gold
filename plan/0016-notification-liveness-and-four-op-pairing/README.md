@@ -6,7 +6,7 @@ the one part of the wave path the session could not localize because the
 DebugView log was not captured; `call/0034` decides to prove it live by model
 instead of discriminating it on hardware. The second defect is root-caused in
 code: the connection-select register bit for a four-operator pair is flipped
-while its release tail still sounds, splitting the voice mid-decay. This
+while its release tail still sounds, and the flip splits the voice mid-decay. This
 milestone models the notification protocol, hardens the interrupt service
 routine to the model's verdict, stabilizes the pairing, and ships both fixes as
 one build so a single operator session validates them together.
@@ -34,7 +34,7 @@ its single hardwired claim.
 
 ## Build sequence
 
-### Make TLC runnable at the verify gate {#tlc-harness}
+### Make TLC runnable at the verify gate {#tlc-gate}
 
 - verify: sh software/adlib_gold/main/spec/tlc.sh ChipTiming
 - inputs: software/adlib_gold/main/spec/tlc.sh

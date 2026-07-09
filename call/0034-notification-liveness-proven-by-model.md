@@ -9,8 +9,9 @@
 The `plan/0013` retest heard PCM for the first time, looping its prefill: Windows
 fills the cyclic buffer once, the auto-initialize DMA replays it, and the refill
 never comes. That sound proves every layer below the interrupt leg (the reg-13h
-write, the DMA line, the FIFO, the DAC, the analog path) and isolates the failure
-to the chain from the card's interrupt to the portcls copy. The checked build
+write, the DMA line, the FIFO, the DAC, the analog path) and leaves only the
+notification chain suspect: the card's interrupt, its delivery, and the portcls
+copy. The checked build
 carries a stop line that would localize the break, but the DebugView log from the
 session was not captured, hardware sessions are scarce, and the standing
 constraint is to minimize them.
