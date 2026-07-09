@@ -143,3 +143,12 @@
     evidence = Timer 0 is the DMA transport's service clock at a 10 ms cadence (reload 0x14AC at 1.88964 us per tick); the ISR re-arms it on each elapse and the DMA paths' FIFO threshold interrupts are masked; mmastatus_test passes; wave.allium timer rule dispositioned; the Wine reproducible build compiles clean (artifact bc976e0b)
     tool = host-lifecycle@0.40.1
     recorded = 2026-07-09
+
+[receipt "plan/0016#four-op-pairing"]
+    disposition = done
+    verify = gcc -o /tmp/fmvoice4op_test software/adlib_gold/main/tests/fmvoice4op_test.c -I software/adlib_gold/main && /tmp/fmvoice4op_test
+    inputs = software/adlib_gold/main/fmsynth.cpp, software/adlib_gold/main/tests/fmvoice4op_test.c
+    digest = ea008334c1114377d4c2cd7f8815ddacdcc0908a,52b12febeb3e470b07d6043e743cb1da1ad53256
+    evidence = note-off keeps the pair's connection bit through release; the allocator protects only live pairs (pure FourOpSlotProtected, tested); every reuse path silences both halves before the bit changes (Opl3_SplitPair, the 4-op pre-connect silence); fmvoice4op_test passes; the Wine build compiles clean (artifact 5567b88b)
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-09
