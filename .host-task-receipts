@@ -109,3 +109,10 @@
     evidence = re-derived 2026-07-08
     tool = host-lifecycle@0.40.1
     recorded = 2026-07-08
+
+[receipt "plan/0013#ship-retest-build"]
+    disposition = done
+    verify = attested operator
+    evidence = attested operator: the retest session ran on the target machine; PCM was audible for the first time but looped the stream prefill (the interrupt notification leg never refilled the cyclic buffer); FM MIDI played with rhythmic garble at four-operator note boundaries; the DebugView log was not captured
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-09
