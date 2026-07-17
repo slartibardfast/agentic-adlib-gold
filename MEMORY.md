@@ -1917,3 +1917,26 @@ OPERATIONAL FACTS:
   repro-exempt story retired by call/0015; Specs lanes live since call/0013), recorded
   the plan/0013#ship-retest-build receipt from the operator's verbal report, and cut
   plan/0016 with tlc-harness + notify-spec already receipted done.
+
+## 2026-07-17 — Fresh checkout restored; the tla2tools pin drifted upstream (specs still pass)
+
+- Session start found a fresh clone: submodules uninitialized, `software/` absent, no git
+  hooks, no git identity. Restored mechanically: `git submodule update --init`, `software
+  --materialize` (worktree at pin 8b0e932), `link-skills.sh`, host-lint pre-commit hook +
+  binary into `.git/hooks/`, repo-local `user.name`/`user.email`.
+- Gate after restore had one real finding: `plan/0016#notify-spec` STALE (its spec inputs
+  changed across the 8776242 and 8b0e932 re-pins after its receipt was recorded).
+  `tasks --rederive` refreshed `plan/0013#fix-bitfields`, `plan/0016#isr-hardening`, and
+  `plan/0016#four-op-pairing` (both unit tests pass).
+- UNEXPECTED CONSTRAINT: the TLC re-derivations failed, and not because of the specs. The
+  tlaplus `v1.8.0` GitHub release is a rolling pre-release whose `tla2tools.jar` asset is
+  re-uploaded over time, so the URL+sha pin in `spec/tlc.sh` (9e27b5e1...) no longer matches
+  what the URL serves (now 58d44845..., a valid jar). A checksum pin against a mutable URL
+  goes stale by upstream action alone. All three specs pass locally under the current jar:
+  NotifyLiveness generates 208 states / 120 distinct, matching the recorded verdict;
+  BankAccess and ChipTiming finish clean.
+- Consequence: the driver's Timing CI lane reddens on its next push (the 2026-07-09 runs at
+  the pin are green; the asset drifted afterwards). The fix belongs in the driver repo:
+  point `tlc.sh` at an immutable artifact (vendor the jar, or pin a dated immutable asset)
+  instead of chasing the rolling asset's current hash. After that, `tasks --rederive` clears
+  `plan/0016#notify-spec` and refreshes `plan/0016#tlc-gate`.
