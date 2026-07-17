@@ -21,3 +21,9 @@
     evidence = synced host-template e8a9ae1 -> 4c6176f; applied ledger 1682d62 (no-op: releases no host-* tool) and 7127dc4 (.bare store already materialized; idempotent) via verify; advanced baseline 46a1fd2 -> 7127dc4; validate + book --check green
     tool = host-lifecycle@0.37.0
     recorded = 2026-07-06
+
+[receipt "upgrade"]
+    disposition = done
+    evidence = case-(c) upgrade: advanced host-template 4c6176f -> 8b578b2e; bumped host-lifecycle v0.37.0 -> v0.39.0 and host-lint v0.13.0 -> v0.14.2; re-applied spine docs (CLAUDE.md band + onboarding/scaffold, STRUCTURE.md .bare + book-mount, lifecycle.manifest scaffold cmd + book --print-mount); recorded ledger 67d63e9, 962630c, ff04a94 via verify; advanced baseline 7127dc4 -> ff04a94; validate + manifest + book --check green, software --check green save the pre-existing plan/0016#notify-spec STALE hazard (tla2tools pin drift, separately scoped)
+    tool = host-lifecycle@0.39.0
+    recorded = 2026-07-17
