@@ -1997,3 +1997,53 @@ INF alternate-config fallback — an interrupt-line change is a deliberate INF e
 `#allocator`) waits on 0016 closing; plan/0009's tasks predate the receipt mechanism and
 carry no receipts — backfilling or closing that milestone is an operator call, not a defect
 today (the gate reads them as pending/open, ok).
+
+## 2026-07-17 — Case-(c) upgrade to template baseline ff04a94
+
+Operator asked to "follow connollydavid/host to keep this an agentic project"; resolved
+that `connollydavid/host` is a separate repo and the recorded template (in `.host`) is
+`connollydavid/host-template`. So this is a type-(c) ledger-driven upgrade, not following a
+live host repo. Baseline now ff04a94 (was 7127dc4).
+
+What changed:
+- host-template submodule `4c6176f` -> `8b578b2e`.
+- host-lifecycle `v0.37.0` -> `v0.39.0` (cargo build --release, installed to `~/.local/bin`).
+  The ledger's max `requires` is v0.39.0, so this is the precise floor. The template's own
+  HEAD pins v0.40.1 internally, but that added no ledger entry, and this project releases no
+  host-* tool, so there is no carried-pin HAZARD from staying at v0.39.0.
+- host-lint `v0.13.0` -> `v0.14.2` (built, installed to `~/.local/bin` AND `.git/hooks/host-lint`
+  — the pre-commit hook vendors the binary there).
+- Spine docs re-applied from the template: CLAUDE.md gained the carried-template-pin release
+  rule, the onboarding init/adopt+scaffold section, and the task-band section (project
+  specifics preserved verbatim at line 733+); STRUCTURE.md gained the `.bare`+gitdir-link
+  layout and the book-mount prose; lifecycle.manifest adopt-phase command is now
+  `host-lifecycle scaffold` and the publish recheck is `book --print-mount .`.
+- Recorded the three pending ledger entries (67d63e9 task band, 962630c book-mount, ff04a94
+  scaffold rename) each via `upgrade --record` (verify greps), then `upgrade --advance`
+  compacted the baseline 7127dc4 -> ff04a94. Re-ran `link-skills.sh` (24 skills, gitignored).
+
+Commits on host main: `b6d1d68` (tools + template + spine docs), `1bffa5a` (.host baseline +
+upgrade receipt). This MEMORY commit follows.
+
+Verify sweep (`host-lifecycle software --check .`): green everywhere EXCEPT the pre-existing
+`plan/0016#notify-spec` STALE hazard — the tla2tools pin drift, next-action A in the entry
+above, unchanged by this upgrade (a pin problem in the driver repo, not a spec failure and
+not caused by the spine/tool bump). validate, manifest --check, book --check, prose, and
+reconcile all clean. No new hazards.
+
+Two advisory, pre-existing, out-of-scope notes (not gate failures, not regressions): (1)
+`entrance --check` rc=2 — no `[entrance]` stanza declared; standalone sibling check, not in
+the verify phase recheck, project never declared one, operator call whether to. (2)
+`remap --check` rc=3 — 5 advisory bare-numeral warnings inside frozen call/ decisions
+(44.1 kHz, 0.002 dB, 1.89 us; genuine audio quantities), immutable records, left as-is.
+
+Restore-recipe delta for the next fresh checkout: the prior recipe (step 4) installs the
+host-lint hook+binary but does NOT rebuild host-lifecycle. After this upgrade a fresh
+checkout must also `cargo build --release` host-lifecycle v0.39.0 from tools/host-lifecycle
+and install it to `~/.local/bin` — the submodules init at the new pins, so no checkout
+change, just the build. (host-lint likewise: build v0.14.2 from tools/host-lint.)
+
+Did NOT write a call/ for this: this project's call/ is software-only (CLAUDE.md: "call/
+records decisions about the software under development... not methodology decisions"), and a
+template upgrade is methodology. Recorded here instead. If the operator wants a call/ marker,
+say so.
