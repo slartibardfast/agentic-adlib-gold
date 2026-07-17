@@ -39,7 +39,8 @@ tool, and the rule is **every phase emits a receipt** (`done`/`skip`/`n-a` in
 
 The *Where* room is the software under test, **one or more** components, each
 embedded as a **bare store with worktrees** under `software/<name>/`: the shared
-object store is `software/<name>/.git`, and each worktree is keyed by branch at
+object store is `software/<name>/.bare`, with a `.git` gitdir-link file beside
+it (call/0039), and each worktree is keyed by branch at
 `software/<name>/<branch>/` (the branch keeps its slashes, so `feature/login`
 nests). The canonical worktree (the audited state, where CI runs) is the
 component's recorded `branch` (default `main`) checked out at the `pin`; the rest are
@@ -90,7 +91,12 @@ A migrated or instantiated repo carries a `.host` stamp at its root
 recording the template revision it adopted (`template`/`revision`/`adopted`),
 written by `host-lifecycle adopt`. It is what a later upgrade diffs from. An
 optional `name` line pins the published book's title, so `host-lifecycle book`
-does not derive it from the checkout directory.
+does not derive it from the checkout directory. An optional `book-mount` line
+(default `/`) publishes the generated book under a sub-path of an existing site
+instead of at its root: `host-lifecycle book` emits mdBook's `site-url` only for a
+non-default mount, so a root-published `book.toml` stays byte-identical,
+`book --print-mount` prints the normalized value, and the reference Site workflow
+reads it from the tool to publish under the sub-path with the surrounding site kept.
 
 The methodology lives in `CLAUDE.md`. Read it first. The whole template is
 released into the public domain (Unlicense); see `README.md` for provenance.
