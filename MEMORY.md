@@ -2047,3 +2047,38 @@ Did NOT write a call/ for this: this project's call/ is software-only (CLAUDE.md
 records decisions about the software under development... not methodology decisions"), and a
 template upgrade is methodology. Recorded here instead. If the operator wants a call/ marker,
 say so.
+
+## 2026-07-17 — Correction: extended to template-tip parity (host-lifecycle v0.40.1); verify-build lane blocked
+
+Operator flagged the entry above as a PARTIAL upgrade. They were right. The ledger pass stopped
+host-lifecycle at v0.39.0 (the entries' floor) and left the CI prose.yml lane stale at v0.36.0,
+while the template tip 8b578b2e pins host-lifecycle v0.40.1. Closed the parity gaps:
+- host-lifecycle v0.39.0 -> v0.40.1 (build + install; commit 67614ac). The submodule pointer is
+  now identical to the template's own pin (9092416).
+- .github/workflows/prose.yml refreshed from the template (was pinning 7e63d99 = v0.36.0; now
+  9092416 = v0.40.1, byte-identical to the template). The CI prose lane now installs the same
+  host-lifecycle the local gate runs.
+So "v0.39.0" in the prior entry is superseded — the live pin is v0.40.1. Gate still green save
+the pre-existing plan/0016#notify-spec STALE.
+
+The operator also asked for a host reproducible-build (verify-build) CI lane. INVESTIGATED, NOT
+WIRED — it is blocked, and committing a workflow now would be red-on-push. `software --verify-build`
+(main.rs ~4518-4569) treats the recorded `toolchain` field as a container IMAGE and runs
+`docker run <image>`. adlib_gold records `toolchain = win2k-ddk-vc6` — a bare image name for the
+Microsoft-licensed DDK that has no public/pullable image — and stages the deps-bundle with a plain
+`curl` of the recorded URL (main.rs ~4351), which cannot authenticate to the private
+slartibardfast/ddk repo where the bundle lives. Locally `--verify-build` reports
+"UNVERIFIABLE — no container runtime". So the host lane cannot work via `software --verify-build`
+as wired. This is WHY the project verifies reproducibility through the DRIVER's own
+`reproducible-build.yml` (Wine + a deploy-key checkout of the ddk bundle + build.sh, which works)
+rather than the host tool. Options for the operator (none taken):
+  (a) publish a pullable win2k-ddk-vc6 OCI image (private registry + CI secret) and make the
+      bundle a direct curl-able URL, then the host lane is `software --verify-build`;
+  (b) write a host lane that MIRRORS the driver's Wine+deploy-key recipe but builds the pinned
+      worktree and compares against the .host-software artifact hash (deviates from --verify-build);
+  (c) leave reproducibility attested by the driver's own CI + `software --check`'s cheap hash
+      match, and skip a host verify-build lane.
+
+Parity commits on main (pushed with this entry): 67614ac (v0.40.1 + prose.yml). The v0.39.0
+receipt in .host-receipts is left as-is (historically true for the ledger pass); the submodule
+pointer is the source of truth for the live pin.
