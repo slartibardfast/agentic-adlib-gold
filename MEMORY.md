@@ -1940,3 +1940,60 @@ OPERATIONAL FACTS:
   point `tlc.sh` at an immutable artifact (vendor the jar, or pin a dated immutable asset)
   instead of chasing the rolling asset's current hash. After that, `tasks --rederive` clears
   `plan/0016#notify-spec` and refreshes `plan/0016#tlc-gate`.
+
+## 2026-07-17 — Handover: state, restore recipe, and the next actions
+
+Written for the next session/agent. Full context lives in `plan/0016/README.md`,
+`call/0034`, and the entries above (2026-07-09 TLC verdict; 2026-07-17 fresh-checkout
+restore). This entry is the operational summary; read those before changing design.
+
+**State.** Host HEAD `0ff7e36`, driver pin `8b0e932`, everything pushed. plan/0016
+(notification liveness + four-op pairing) has all four build tasks done, receipted, and
+re-derived. The gate (`host-lifecycle software --check .`) is clean except ONE hazard:
+`plan/0016#notify-spec` STALE. That staleness is NOT a spec failure — all three specs
+(NotifyLiveness, BankAccess, ChipTiming) pass locally under the currently-served
+tla2tools jar; it is the mutable-pin problem in next-action A.
+
+**Restore a fresh checkout** (any machine; this one is already restored):
+1. `git submodule update --init`
+2. `host-lifecycle software --materialize .`  (binaries here: `~/.local/bin/host-lifecycle`, `~/.local/bin/host-lint`)
+3. `./link-skills.sh`
+4. `cp tools/host-lint/pre-commit .git/hooks/pre-commit && cp ~/.local/bin/host-lint .git/hooks/host-lint && chmod +x .git/hooks/pre-commit .git/hooks/host-lint`
+   (a fresh clone has NO hooks and NO git identity — skip this and commits land unlinted)
+5. `git config user.name "David Connolly" && git config user.email "david@connol.ly"`
+6. Pushing: two gh accounts are authenticated on this machine; the remotes belong to
+   `slartibardfast`. `gh auth switch -u slartibardfast`, push, `gh auth switch -u connollydavid`.
+7. Sanity: `host-lifecycle software --check .` — expect only the notify-spec STALE (until A lands).
+   Re-derivation needs `gcc` and `java` on PATH; `tasks --rederive` re-runs EVERY mechanical
+   done verify, not just the stale one.
+
+**Next action A — make the TLC pin immutable (clears the hazard; ask the operator which
+mechanism).** Root cause: tlaplus `v1.8.0` is a rolling pre-release; its `tla2tools.jar`
+asset is re-uploaded upstream, so `spec/tlc.sh`'s URL+sha pin broke with no local change
+(pinned `9e27b5e1…`, served `58d44845…`). Do NOT just re-pin the current hash — it drifts
+again. Options: vendor the jar (fits the hermetic deps-bundle doctrine) or pin a dated,
+immutable asset. The fix lands in the DRIVER repo, then flows back:
+1. Edit `software/adlib_gold/main/spec/tlc.sh`; prove all three specs via `sh spec/tlc.sh <Spec>`.
+2. Commit and push in the worktree FIRST (commit-upstream-first rule). The driver's Timing
+   CI lane is red-in-waiting on any push until this lands (last green runs 2026-07-09
+   predate the drift).
+3. Re-pin `.host-software` to the new driver SHA; commit and push the host.
+4. `host-lifecycle tasks --rederive .` (refreshes `#tlc-gate` and clears `#notify-spec`);
+   commit the receipts ledger on its own; push. Gate now fully green.
+
+**Next action B — ship (`plan/0016#ship-hardened-build`, the ready frontier).** A blocks B
+in practice: the release phase re-runs the verify sweep, which HAZARDs on the stale receipt.
+Then: tool-carried release (`host-lifecycle release adlib_gold …`) — version bump, both
+reproducible builds byte-identical at the recorded hash, `.host-software` build stanzas +
+pin updated, annotated `vX.Y.Z` tag pushed, USB packaged with a plain-ASCII readme. ONE
+operator listening session answers both fixes (dxdiag PCM plays through without looping
+its prefill; MIDI without the note-boundary thump). Record it:
+`host-lifecycle tasks --record plan/0016#ship-hardened-build --disposition done --evidence "<operator report>"`,
+commit, push. If PCM still loops the prefill, the surviving hypothesis is physical delivery
+of the selected interrupt line (`call/0034` residue); the operator has already REJECTED an
+INF alternate-config fallback — an interrupt-line change is a deliberate INF edit they own.
+
+**Behind it (do not start without the operator).** plan/0014 full duplex (frontier
+`#allocator`) waits on 0016 closing; plan/0009's tasks predate the receipt mechanism and
+carry no receipts — backfilling or closing that milestone is an operator call, not a defect
+today (the gate reads them as pending/open, ok).
