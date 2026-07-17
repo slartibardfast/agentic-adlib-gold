@@ -152,3 +152,30 @@
     evidence = spec/tlc.sh runs the pinned tla2tools v1.8.0 (sha256-verified, cached) exactly as the Timing CI lane does; baseline ChipTiming and BankAccess both pass locally
     tool = host-lifecycle@0.40.1
     recorded = 2026-07-09
+
+[receipt "plan/0013#fix-bitfields"]
+    disposition = done
+    verify = gcc -o /tmp/wavereg_test software/adlib_gold/main/tests/wavereg_test.c -I software/adlib_gold/main && /tmp/wavereg_test
+    inputs = software/adlib_gold/main/common.h, software/adlib_gold/main/wavereg.h, software/adlib_gold/main/tests/wavereg_test.c
+    digest = 831141d91604065fa640e598323563ba3b851af8,a86888d09711d00f273221d46662849a6deb92b5,602abde3beff83c6751dc35c039db6576c674939
+    evidence = re-derived 2026-07-17
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-17
+
+[receipt "plan/0016#isr-hardening"]
+    disposition = done
+    verify = gcc -o /tmp/mmastatus_test software/adlib_gold/main/tests/mmastatus_test.c -I software/adlib_gold/main && /tmp/mmastatus_test
+    inputs = software/adlib_gold/main/common.cpp, software/adlib_gold/main/algwave.cpp, software/adlib_gold/main/mmastatus.h, software/adlib_gold/main/tests/mmastatus_test.c
+    digest = da42aa02660e3f614c8351bd0f21ea6ce8602946,e89523c39891e11df93a0d8a09e09543e1035fce,c01ad5831cc161e99d0bbfaf49d3a10f1f9845da,bf060ad04a2e8ccb9537e4ced49bf4d379028da7
+    evidence = re-derived 2026-07-17
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-17
+
+[receipt "plan/0016#four-op-pairing"]
+    disposition = done
+    verify = gcc -o /tmp/fmvoice4op_test software/adlib_gold/main/tests/fmvoice4op_test.c -I software/adlib_gold/main && /tmp/fmvoice4op_test
+    inputs = software/adlib_gold/main/fmsynth.cpp, software/adlib_gold/main/tests/fmvoice4op_test.c
+    digest = ea008334c1114377d4c2cd7f8815ddacdcc0908a,52b12febeb3e470b07d6043e743cb1da1ad53256
+    evidence = re-derived 2026-07-17
+    tool = host-lifecycle@0.40.1
+    recorded = 2026-07-17
