@@ -18,10 +18,10 @@
 	toolchain    = win2k-ddk-vc6
 	build        = ./build.sh
 	attest-host  = linux
-	artifact     = adlibgold.sys 7cece8d0238173d8109fe1ccc584d52fd01b755797c7d584228823b6e93798b6
+	artifact     = adlibgold.sys 5567b88b47df6604136311f5fec94a5617bfa3716c86bca224a12cc481ec59fd
 
 [build "adlib_gold" "windows"]
 	toolchain    = win2k-ddk-vc6
 	build        = build.bat
 	attest-host  = windows
-	artifact     = adlibgold.sys 7cece8d0238173d8109fe1ccc584d52fd01b755797c7d584228823b6e93798b6
+	artifact     = adlibgold.sys 5567b88b47df6604136311f5fec94a5617bfa3716c86bca224a12cc481ec59fd
