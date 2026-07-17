@@ -2082,3 +2082,8 @@ rather than the host tool. Options for the operator (none taken):
 Parity commits on main (pushed with this entry): 67614ac (v0.40.1 + prose.yml). The v0.39.0
 receipt in .host-receipts is left as-is (historically true for the ledger pass); the submodule
 pointer is the source of truth for the live pin.
+
+**Resolution (operator, same day): option (c) — skip the host verify-build lane as redundant.**
+Reproducibility stays attested by the driver's own `reproducible-build.yml` (Wine + deploy-key
+bundle) plus `software --check`'s recorded-artifact hash match. No host verify-build workflow
+added; do not re-open without picking (a) or (b) above.
