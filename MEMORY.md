@@ -2087,3 +2087,41 @@ pointer is the source of truth for the live pin.
 Reproducibility stays attested by the driver's own `reproducible-build.yml` (Wine + deploy-key
 bundle) plus `software --check`'s recorded-artifact hash match. No host verify-build workflow
 added; do not re-open without picking (a) or (b) above.
+
+## 2026-07-17 — alpha.15 released; tla2tools jar vendored; verify gate fully green
+
+Two closed items that earlier entries list as open:
+
+**Release cut: v1.0.0-alpha.15.** Tagged the driver at `8b0e932` and pushed (annotated tag).
+Both reproducible builds were already CI-green at `5567b88b` (linux/Wine run 29011243318,
+windows run 29011243319, 2026-07-09). Versioning is tag-only (no version field in the source),
+so the tag is the version bump. The host `.host-software` artifact hash was stale
+(`7cece8d0`, predating the four-op re-pin) — reconciled to the CI-proven `5567b88b` for both
+attest-hosts. Release recorded `done` (commit 557ff0b). Note: the release was cut manually
+(tag + hash) because `host-lifecycle release` runs verify-first and would HAZARD on the
+then-open notify-spec STALE — the operator directed cutting it anyway; the build/release is
+orthogonal to the spec lane.
+
+**TLC pin made immutable (clears the notify-spec STALE — Next action A, done).** Root cause
+was the tlaplus `v1.8.0` rolling pre-release: its `tla2tools.jar` asset is re-uploaded
+upstream, so `spec/tlc.sh`'s URL+sha pin broke (pinned `9e27b5e1`, served `58d44845`) and the
+specula re-derivation failed. Vendored the jar beside `spec/tlc.sh` in the driver
+(`spec/tla2tools.jar`, sha `58d44845`, committed; tlc.sh uses the local jar, no curl; the
+.gitignore `tla2tools.jar` rule was removed since it's now tracked). Chose vendor over a
+dated-asset URL because the project already runs the hermetic deps-bundle doctrine (the DDK
+bundle) — same pattern. All three specs pass (ChipTiming; NotifyLiveness 120 states;
+BankAccess). Driver commit `dd4f869` (pushed). Re-pinned the host to `dd4f869` and
+`host-lifecycle tasks --rederive` refreshed all five mechanical receipts. **The verify gate is
+now fully green: rc=0, zero HAZARDs, every phase done.** Host commit f2db458 (pushed).
+
+Driver main HEAD is now `dd4f869` (post-alpha.15 spec fix; the artifact is unchanged at
+`5567b88b` — the vendor commit touches only the spec lane, not the build).
+
+**Next (operator-side, not agent-side):** `plan/0016#ship-hardened-build` is the one
+attested-operator task left. Run `v1.0.0-alpha.15` on the card: PCM via dxdiag must play
+through without looping its prefill; MIDI must play without the note-boundary thump. On pass,
+record it (`host-lifecycle tasks --record plan/0016#ship-hardened-build --disposition done
+--evidence "<report>"`) and plan/0016 closes, which unblocks plan/0014 (duplex, frontier
+`#allocator`). If PCM still loops the prefill, the surviving hypothesis is physical delivery
+of the selected interrupt line (`call/0034` residue); the operator already rejected an INF
+alternate-config fallback, so an interrupt-line change is a deliberate INF edit they own.
