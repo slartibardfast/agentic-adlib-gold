@@ -2125,3 +2125,34 @@ record it (`host-lifecycle tasks --record plan/0016#ship-hardened-build --dispos
 `#allocator`). If PCM still loops the prefill, the surviving hypothesis is physical delivery
 of the selected interrupt line (`call/0034` residue); the operator already rejected an INF
 alternate-config fallback, so an interrupt-line change is a deliberate INF edit they own.
+
+## 2026-07-19 — PCem as a validation oracle; clean-room wall recorded
+
+PCem (`sarah-walker-pcem/pcem`, GPL-2.0) ships a register-level Ad Lib Gold model in
+`src/sound/sound_adlibgold.c`. Read to assess it as a stand-in for the card. Finding: it is a
+faithful oracle for exactly the two operator checks `plan/0016#ship-hardened-build` needs. The
+PCM prefill-loop lives on the digital MMA FIFO/DMA/timer/IRQ surface, all precisely modeled
+(the service-timer cadence matches the driver's and `spec/NotifyLiveness.tla`'s); the MIDI
+note-boundary thump is an OPL3 register sequence, and PCem offers NukedOPL (cycle-accurate).
+The analog path (YM7128 surround, TDA8425-style bass/treble) is approximate by the author's
+own comments, and PCem hardwires the card's interrupt so it cannot validate the `call/0034`
+interrupt-line residue. Those stay real-hardware questions.
+
+**Clean-room wall recorded as `call/0035` (accepted).** PCem is a validation oracle only; no
+PCem source enters `adlib_gold/` or this host (not vendored, paraphrased, or adapted); the
+harness drives it as a subprocess against an externally-supplied binary; spec authority stays
+the datasheet/SDK/real-card. **The recusal is part of the decision:** an agent that has ingested
+PCem source is on the reader side and may build/run the harness and author specs from the
+datasheet, but may not author the driver's hardware-interface code (ISR/DMA/register/FIFO/timer);
+such an edit is routed to a clean agent.
+
+**This session has read `sound_adlibgold.c`** and is therefore walled off from driver
+hardware-interface edits for the rest of the thread. Host-side, harness, build, INF, docs, and
+datasheet-sourced spec work remain in scope. If a `call/0034` interrupt-line edit becomes
+necessary, it goes to a fresh clean agent.
+
+**Open (operator direction pending):** whether to use PCem as a one-off operator proxy (build
+PCem + Win2k + driver, capture dxdiag/MIDI, listen), a scripted CI harness (headless run that
+graduates the PCM check from `attested operator` to mechanical), or park it. The operator chose
+to investigate before committing; the Win2k-under-PCem + WDM-driver-load combination is the
+load-bearing unknown to resolve next.
