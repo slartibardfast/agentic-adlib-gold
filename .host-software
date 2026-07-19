@@ -7,7 +7,7 @@
 
 [software "adlib_gold"]
 	url          = https://github.com/slartibardfast/adlib_gold.git
-	pin          = 55e30a1c4e9642668d2db0da2e669bfe08b2e634
+	pin          = 33cf7f8e9c0a6227d217406bbe4e82955656b57f
 	branch       = main
 	deploy       = main
 	deps-bundle  = https://github.com/slartibardfast/ddk.git f60af3fd65b53b67176499d9959adc1235cb1a1d3024c0adb6b7bd3c2fadb902

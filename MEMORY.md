@@ -2208,69 +2208,89 @@ operator a ranked hypothesis list to bring to the card. **Datasheet verification
   status-byte philosophy. Residual: the datasheet specifies the set condition but not the clear
   condition verbatim; the level-clearing is the only reading consistent with the absence of any
   reset mechanism.
+- *Stereo SFC_0 change 0xC5 → 0xC7 (former hypothesis #6)* — CLEARED. The YMZ263 reg $0C bit
+  map (`FMT1|FMT0|SELF2|SELF1|SELF0|MSK FIF|DMA ENB`, per the register map in the primary
+  datasheet) confirms FMT, SELF, and MSK are **separate fields**. The 0x02 difference between
+  0xC5 and 0xC7 is exactly the `MSK FIF` bit; FMT and SELF are untouched. The change is
+  surgical and correct.
+- *Timer reload byte order (former hypothesis #7)* — PARTIALLY cleared. The primary datasheet's
+  register map confirms `$02 = TIMER 0 (L)` and `$03 = TIMER 0 (H)`, so the driver's LO-then-HI
+  write order matches. The latching sequence (whether the reload takes effect on the HI write
+  or on the ST0 0→1 transition) remains undocumented; with the ST0-set-reloads fact now
+  confirmed, the residual is small.
+- *Driver programs the IRQ routing to match the resource list (question raised in review)* —
+  CONFIRMED CORRECT. `ConfigureDmaAndIrq` (algwave.cpp:541) reads the IRQ via
+  `FindUntranslatedInterrupt(0)`, maps it to `CTRL_IRQ_SEL_*` (common.h:190–197), and writes
+  Control Chip reg 13h as step 5 of the boot sequence (after `ControlRegReset` zeroes it). The
+  IRQ-select encoding matches the Ad Lib Gold manual's INT SEL A table exactly. There is no
+  physical IRQ strap on the card — the YMZ263's pin 24 `/IRQ` is a single open-drain output
+  routed to the selected ISA line by reg 13h's INT SEL A field. The `call/0034` residue
+  ("physical delivery of the selected interrupt line") is therefore a board-level question
+  (trace, buffer, IRQ conflict), not a software-programming question.
+- *Stale reg 13h bit layout in the driver's CLAUDE.md* — FOUND AND FIXED. The architecture
+  overview claimed reg 13h as "DMA select (D7-D6), DMA enable (D5), IRQ select (D3-D1), IRQ
+  enable (D4)" — but neither the ch07 register map nor `common.h:183–187` matches that. The
+  real layout is DMA0 enable (D7), DMA0 select (D6-D4), IRQ enable/AEN (D3), IRQ select (D2-D0).
+  Fixed in driver commit `33cf7f8`; the code was already correct, only the doc was wrong. This
+  was a stale restatement from the initial design that `call/0029`/`call/0033` superseded
+  without reconciling the architecture overview — a host-reconcile-class defect in the driver's
+  own CLAUDE.md, surfaced by the IRQ-programming review.
+- *Physical interrupt line / `call/0034` residue (former hypothesis #1)* — CLEARED by operator
+  confirmation (2026-07-19): the Ad Lib Gold card itself has carried interrupt traffic on IRQ7
+  before (prior sessions / DOS), and IRQ7 is free on the test machine. Combined with the
+  verified IRQ-routing code (`ConfigureDmaAndIrq` writes the correct INT SEL A for IRQ7) and
+  the YMZ263 datasheet's confirmation of the single open-drain `/IRQ` pin, the full chain
+  (card → ISA slot → interrupt controller → CPU) is proven. The `call/0034` residue is closed:
+  no hypothesis predicts a total PCM+MIDI interrupt-delivery failure on alpha.15.
 
 **Top hypotheses for the alpha.15 on-card session (ranked, with log signatures):**
-*Re-ranked after the primary YMZ263 datasheet refuted the former #1 (Timer 0 re-arm).*
+*Re-ranked after operator confirmation cleared the former #1 (the wire). With the Timer 0
+protocol, the IRQ-routing code, the reload value, the stereo format byte, AND the physical
+interrupt line all confirmed, NO remaining hypothesis predicts a sustained PCM prefill loop.
+The session is expected to pass on PCM; the open questions are the narrow state-gate edge
+case (#1) and the MIDI pairing artifacts (#3, #4).*
 
-1. **Physical interrupt line (`call/0034` residue).** The model proves the protocol live and the
-   primary datasheet confirms the timer-flag semantics; neither can prove the wire. If the INF's
-   hardwired IRQ claim (`call/0022`) doesn't match the card's strap on this machine, no
-   interrupts arrive at all.
-   *Log signature:* zero ISR entries for ANY source. MIDI UART Rx is also dead, not just PCM.
-   *Distinguishing:* MIDI works + PCM loops → it's Timer 0 (#2, #3). Both dead → the wire (#1).
-
-2. **`m_State == KSSTATE_RUN` gate aborts the re-arm during stream transitions** (algwave.cpp:1135).
+1. **`m_State == KSSTATE_RUN` gate aborts the re-arm during stream transitions** (algwave.cpp:1135).
    If a Timer 0 elapse lands during the PAUSE/ACQUIRE window in setup or teardown, the re-arm is
-   skipped, Timer 0 stays terminal, the line stays high, no fresh edge ever.
+   skipped, Timer 0 stays terminal, the line stays high, no fresh edge ever. This is the only
+   remaining hypothesis for a one-shot PCM failure (plays the prefill exactly once, then silence).
    *Log signature:* ISR entry shows T0 set but stream state ≠ RUN; no subsequent ISR entries.
 
-3. **FIFO not pre-filled before GO (datasheet ch07 line 910).** Pre-existing, not introduced by
-   alpha.15, but worth checking if a startup glitch is heard. The tip says the FIFO should be
-   filled above the threshold BEFORE GO is set; the driver sets GO and relies on auto-initialize
-   DMA to fill the FIFO within microseconds.
+2. **FIFO not pre-filled before GO (datasheet ch07 line 910).** Pre-existing, not introduced by
+   alpha.15. The tip says the FIFO should be filled above the threshold BEFORE GO is set; the
+   driver sets GO and relies on auto-initialize DMA to fill the FIFO within microseconds.
    *Log signature:* a brief click or glitch at the very start of playback, then clean; or first
-   buffer emits garbage. Distinct from the sustained prefill loop.
+   buffer emits garbage. Distinct from a sustained prefill loop.
 
-4. **Four-op silence transient click (MIDI).** `Opl3_SilenceSlot` writes key-off then two
+3. **Four-op silence transient click (MIDI).** `Opl3_SilenceSlot` writes key-off then two
    total-level-to-max writes (~70 µs of `SoundMidiSendFM` delays). The connection-select flip
    after that window may emit a brief burst at the stale level. The original thump may be traded
    for a click at note-on of a reused pair, not note-off.
    *Log signature:* artifact character changes; click correlates with note-on on a channel that
    was just released, not with note-off.
 
-5. **Four-op release-tail truncation (MIDI).** `FourOpSlotProtected` checks only the primary's
+4. **Four-op release-tail truncation (MIDI).** `FourOpSlotProtected` checks only the primary's
    `on` state — by design, a released pair is stealable. If the secondary has a long release
    tail (sustain pedal, slow decay), `Opl3_SplitPair` silences it, cutting the tail audibly.
    *Log signature:* sustained chord that exceeds 6 simultaneous 4-op voices develops clicks or
    cutoffs as voices are stolen.
 
-6. **Stereo SFC_0 changed `0xC5 → 0xC7` (FIFO IRQ masked).** Bit difference is surgical (0x02 =
-   MSK), but if the reference's lower bits carried meaning beyond the IRQ mask, stereo breaks
-   while mono works.
-   *Log signature:* 8-bit mono PCM works (Timer 0 path); 16-bit stereo does not, or artifacts
-   differently.
-
-7. **Timer reload byte order (LO before HI).** Undocumented in the datasheet. Alpha.15 writes LO
-   then HI; if the hardware expects HI then LO or latches on a specific strobe, the reload
-   doesn't take.
-   *Log signature:* Timer 0 never fires or fires at the wrong cadence (PCM loops continuously,
-   not once).
-
 **Distinguishing decision tree for the log session:**
-- Neither PCM nor MIDI works → #1 (the wire).
-- MIDI works, PCM loops its prefill exactly once → #2 (state gate); check the stream state in
-  the ISR log. (The former #1, re-arm-clears-flag, is refuted — do not pursue without new
-  evidence.)
-- MIDI works, PCM loops continuously → Timer 0 IRQ isn't firing at all; verify the reload took
-  (#7) or the physical line (#1).
-- PCM plays but glitches regularly → #3 (startup glitch) or a cadence issue.
-- PCM clean, MIDI thumps/clicks → #4 (silence transient) or #5 (tail truncation).
-- Mono works, stereo doesn't → #6.
+- PCM plays through cleanly → the alpha.15 fix landed. Watch for MIDI artifacts (#3, #4).
+- PCM plays its prefill exactly once, then silence → #1 (state gate); check the stream state in
+  the ISR log. This is the one remaining software hypothesis for a PCM failure.
+- PCM plays but glitches at startup → #2 (FIFO pre-fill), pre-existing.
+- PCM clean, MIDI thumps/clicks → #3 (silence transient) or #4 (tail truncation).
+- A sustained prefill loop (the original alpha.14 symptom) → no remaining hypothesis predicts
+  this. If it recurs, the datasheet-grounded model is wrong somewhere and the investigation
+  reopens from scratch.
 
-**Cheapest pre-session check** (no hardware required):
-- Confirm the INF's hardwired IRQ (`call/0022`) matches the card's physical strap on the test
-  machine before booking the session. With the Timer 0 protocol path now confirmed by the
-  primary datasheet, the wire is the load-bearing unknown for a PCM-only failure.
+**The pre-mortem has converged.** Every link in the interrupt-notification chain is now
+confirmed by an independent source: the TLA+ model (protocol liveness), the primary YMZ263
+datasheet (timer-flag semantics, reload value, register layout), the code review (IRQ routing,
+re-arm sequence), and the operator (physical wire). The alpha.15 build is expected to resolve
+the PCM prefill loop. The session's real questions are whether the four-op MIDI fix trades the
+thump for a click (#3), and whether the narrow state-gate edge case (#1) ever fires in practice.
 
 This entry does not change any code, decision, or task receipt; it records the pre-mortem for the
 next session. The clean-room wall from `call/0035` holds: this analysis was sourced from the SDK
