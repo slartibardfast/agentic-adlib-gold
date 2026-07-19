@@ -2156,3 +2156,111 @@ PCem + Win2k + driver, capture dxdiag/MIDI, listen), a scripted CI harness (head
 graduates the PCM check from `attested operator` to mechanical), or park it. The operator chose
 to investigate before committing; the Win2k-under-PCem + WDM-driver-load combination is the
 load-bearing unknown to resolve next.
+
+## 2026-07-19 — alpha.15 GitHub Release published; adversarial pre-mortem for the on-card session
+
+The v1.0.0-alpha.15 tag existed since 2026-07-17 (annotated, at 8b0e932); the missing piece was
+the GitHub Release with the artifact attached. Built adlibgold.sys locally from the pinned
+deps-bundle (BUNDLE=/tmp/opencode/ddk/adlibgold-ddk-vc6-bundle.tar.gz ./build.sh under Wine 11.13),
+reproduced the recorded hash `5567b88b…` byte-for-byte (reproducibility re-confirmed off-CI), and
+published `gh release create v1.0.0-alpha.15` as prerelease with the artifact attached and
+release notes derived from the tag message. Release URL:
+https://github.com/slartibardfast/adlib_gold/releases/tag/v1.0.0-alpha.15. The host
+`release` phase receipt (`done`, 2026-07-17) is unchanged — the GitHub Release is the
+publish-side complement to the existing tag+pin.
+
+Then: an adversarial pre-mortem of alpha.15 for `plan/0016#ship-hardened-build`, to give the
+operator a ranked hypothesis list to bring to the card. **Datasheet verification was run first**
+(manual/src/ch07-low-level.md) and removed several candidates before recording.
+
+**Datasheet-verified CLEAR (do not re-litigate these):**
+- *STB (base counter) required for Timer 0* — REFUTED. ch07 line 750, 796: Timer 0 is a 16-bit
+  down-counter at 1.8896 µs/tick, started by ST0 alone. STB clocks ONLY timers 1 and 2 (line 756,
+  764). `MMA_TIMER_RUN_T0 = 0x61` (ST0 set, STB clear) is correct.
+- *Timer 0 IRQ not routed to the shared line* — REFUTED. appendix-gss.md line 68: timer
+  interrupts assert the shared MMA IRQ line. ch07 line 914: masks gate the IRQ line only, not the
+  status register (so the ISR sees T0 set regardless of T0M).
+- *Timer 0 reload value wrong* — REFUTED. 1.88964 µs/tick (line 750); 10000 µs / 1.88964 =
+  5292.4 → 5292 = 0x14AC = 10.0 ms. `MMA_TIMER0_LO_10MS = 0xAC`, `MMA_TIMER0_HI_10MS = 0x14`
+  are correct.
+- *C4390 empty-statement warnings at common.cpp:740,752* — BENIGN. The pattern is
+  `if (!WaitForReady()) _DbgPrintF(...)`; `_DbgPrintF` expands to `((void)0)` under NDEBUG,
+  leaving an empty body. The `WaitForReady()` call is preserved (it polls a volatile port), so
+  the side effect stands; only the diagnostic print is suppressed in the free build.
+- *FIFO threshold interrupt under DMA as a service clock* — CONFIRMED NOT. ch07 line 908: for
+  DMA transfers, validate the FIFO interrupt by reading the DMA controller's counters — it
+  indicates end-of-transfer, not periodic refill. This is exactly `call/0034`'s premise; masking
+  it on DMA paths (alpha.15) is the right call.
+
+**Top hypotheses for the alpha.15 on-card session (ranked, with log signatures):**
+
+1. **Timer 0 re-arm fails to clear the flag (gap in the TLA+ proof).** `spec/NotifyLiveness.tla`
+   sets `timerFlag' = FALSE` in `IsrRead` unconditionally — the model ASSUMES the stop+start
+   re-arm clears the flag. The datasheet documents no IRQ-RESET for the MMA (unlike the OPL3's
+   reg 04 bit 7); Timer 0's flag-clearing on stop+start is unspecified. If the flag is latched,
+   the line stays high after the first elapse, no fresh edge is generated, and at most ONE Timer 0
+   ISR fires (the first), then silence — the prefill loops exactly once and stops.
+   *Log signature:* exactly one Timer 0 ISR entry after stream start; the T0 bit stays set in
+   subsequent status reads; DMA active but no further portcls refills.
+
+2. **Physical interrupt line (`call/0034` residue).** The model proves the protocol live; it
+   cannot prove the wire. If the INF's hardwired IRQ claim (`call/0022`) doesn't match the card's
+   strap on this machine, no interrupts arrive at all.
+   *Log signature:* zero ISR entries for ANY source. MIDI UART Rx is also dead, not just PCM.
+   *Distinguishing:* MIDI works + PCM loops → it's Timer 0 (#1, #3). Both dead → the wire (#2).
+
+3. **`m_State == KSSTATE_RUN` gate aborts the re-arm during stream transitions** (algwave.cpp:1135).
+   If a Timer 0 elapse lands during the PAUSE/ACQUIRE window in setup or teardown, the re-arm is
+   skipped, Timer 0 stays terminal, the line stays high, no fresh edge ever.
+   *Log signature:* ISR entry shows T0 set but stream state ≠ RUN; no subsequent ISR entries.
+
+4. **FIFO not pre-filled before GO (datasheet ch07 line 910).** Pre-existing, not introduced by
+   alpha.15, but worth checking if a startup glitch is heard. The tip says the FIFO should be
+   filled above the threshold BEFORE GO is set; the driver sets GO and relies on auto-initialize
+   DMA to fill the FIFO within microseconds.
+   *Log signature:* a brief click or glitch at the very start of playback, then clean; or first
+   buffer emits garbage. Distinct from the sustained prefill loop.
+
+5. **Four-op silence transient click (MIDI).** `Opl3_SilenceSlot` writes key-off then two
+   total-level-to-max writes (~70 µs of `SoundMidiSendFM` delays). The connection-select flip
+   after that window may emit a brief burst at the stale level. The original thump may be traded
+   for a click at note-on of a reused pair, not note-off.
+   *Log signature:* artifact character changes; click correlates with note-on on a channel that
+   was just released, not with note-off.
+
+6. **Four-op release-tail truncation (MIDI).** `FourOpSlotProtected` checks only the primary's
+   `on` state — by design, a released pair is stealable. If the secondary has a long release
+   tail (sustain pedal, slow decay), `Opl3_SplitPair` silences it, cutting the tail audibly.
+   *Log signature:* sustained chord that exceeds 6 simultaneous 4-op voices develops clicks or
+   cutoffs as voices are stolen.
+
+7. **Stereo SFC_0 changed `0xC5 → 0xC7` (FIFO IRQ masked).** Bit difference is surgical (0x02 =
+   MSK), but if the reference's lower bits carried meaning beyond the IRQ mask, stereo breaks
+   while mono works.
+   *Log signature:* 8-bit mono PCM works (Timer 0 path); 16-bit stereo does not, or artifacts
+   differently.
+
+8. **Timer reload byte order (LO before HI).** Undocumented in the datasheet. Alpha.15 writes LO
+   then HI; if the hardware expects HI then LO or latches on a specific strobe, the reload
+   doesn't take.
+   *Log signature:* same as #1 (timer never fires or fires at wrong cadence).
+
+**Distinguishing decision tree for the log session:**
+- Neither PCM nor MIDI works → #2 (the wire).
+- MIDI works, PCM loops its prefill exactly once → #1 (re-arm) or #3 (state gate); check ISR
+  entry count and stream state in the logs.
+- MIDI works, PCM loops continuously → the Timer 0 IRQ isn't firing at all; verify the reload
+  took (#8) or the timer flag semantics differ from the model.
+- PCM plays but glitches regularly → #4 (startup glitch) or a cadence issue.
+- PCM clean, MIDI thumps/clicks → #5 (silence transient) or #6 (tail truncation).
+- Mono works, stereo doesn't → #7.
+
+**Two cheapest pre-session checks** (no hardware required):
+- #1's datasheet gap: re-read SDK ch07 around line 750-796 and the OPL3 reset sequence (line
+  488-504) to see whether the MMA inherits an IRQ-RESET-style mechanism the driver doesn't issue.
+- #2's IRQ claim: confirm the INF's hardwired IRQ (call/0022) matches the card's physical strap
+  on the test machine before booking the session.
+
+This entry does not change any code, decision, or task receipt; it records the pre-mortem for the
+next session. The clean-room wall from `call/0035` holds: this analysis was sourced from the SDK
+manual and the driver's own code/spec, not from PCem.
