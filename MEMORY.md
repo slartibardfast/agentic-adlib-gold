@@ -2191,75 +2191,86 @@ operator a ranked hypothesis list to bring to the card. **Datasheet verification
   DMA transfers, validate the FIFO interrupt by reading the DMA controller's counters — it
   indicates end-of-transfer, not periodic refill. This is exactly `call/0034`'s premise; masking
   it on DMA paths (alpha.15) is the right call.
+- *Timer 0 re-arm fails to clear the flag (former hypothesis #1)* — REFUTED by the primary
+  YMZ263 datasheet (now internalised as the `ymz263/` bilingual mdBook, driver commit `55e30a1`,
+  deployed at https://slartibardfast.github.io/adlib_gold/ymz263/datasheet.html). Four facts
+  force the level-sensitive reading: (a) the status description uses the same "becomes '1' when
+  ..." construction for T0/T1/T2 as for the FIFO flags, which are self-evidently level; (b) reg
+  $08 has NO IRQ-RESET bit (unlike the OPL3's reg 04 bit 7), so a latched flag would make the
+  timer one-interrupt-only — a logical impossibility; (c) the register description states masks
+  gate only the IRQ line, "the status-register flags are not masked" — the defining level-
+  sensitive property; (d) "Setting [ST0] loads the reload value and starts counting down" ties
+  reload to the ST0 0→1 transition, so the counter holds at 0 (flag high) until re-armed.
+  Together: stop+start reloads the counter off 0, the elapsed condition ends, the flag returns
+  to 0, the line drops, the next elapse delivers a fresh edge. The TLA+ model's
+  `timerFlag' = FALSE` in `IsrRead` is validated. The OPL3 counter-analogy (latched flags +
+  explicit IRQ-RESET) does not carry over to the YMZ263, a different chip with a different
+  status-byte philosophy. Residual: the datasheet specifies the set condition but not the clear
+  condition verbatim; the level-clearing is the only reading consistent with the absence of any
+  reset mechanism.
 
 **Top hypotheses for the alpha.15 on-card session (ranked, with log signatures):**
+*Re-ranked after the primary YMZ263 datasheet refuted the former #1 (Timer 0 re-arm).*
 
-1. **Timer 0 re-arm fails to clear the flag (gap in the TLA+ proof).** `spec/NotifyLiveness.tla`
-   sets `timerFlag' = FALSE` in `IsrRead` unconditionally — the model ASSUMES the stop+start
-   re-arm clears the flag. The datasheet documents no IRQ-RESET for the MMA (unlike the OPL3's
-   reg 04 bit 7); Timer 0's flag-clearing on stop+start is unspecified. If the flag is latched,
-   the line stays high after the first elapse, no fresh edge is generated, and at most ONE Timer 0
-   ISR fires (the first), then silence — the prefill loops exactly once and stops.
-   *Log signature:* exactly one Timer 0 ISR entry after stream start; the T0 bit stays set in
-   subsequent status reads; DMA active but no further portcls refills.
-
-2. **Physical interrupt line (`call/0034` residue).** The model proves the protocol live; it
-   cannot prove the wire. If the INF's hardwired IRQ claim (`call/0022`) doesn't match the card's
-   strap on this machine, no interrupts arrive at all.
+1. **Physical interrupt line (`call/0034` residue).** The model proves the protocol live and the
+   primary datasheet confirms the timer-flag semantics; neither can prove the wire. If the INF's
+   hardwired IRQ claim (`call/0022`) doesn't match the card's strap on this machine, no
+   interrupts arrive at all.
    *Log signature:* zero ISR entries for ANY source. MIDI UART Rx is also dead, not just PCM.
-   *Distinguishing:* MIDI works + PCM loops → it's Timer 0 (#1, #3). Both dead → the wire (#2).
+   *Distinguishing:* MIDI works + PCM loops → it's Timer 0 (#2, #3). Both dead → the wire (#1).
 
-3. **`m_State == KSSTATE_RUN` gate aborts the re-arm during stream transitions** (algwave.cpp:1135).
+2. **`m_State == KSSTATE_RUN` gate aborts the re-arm during stream transitions** (algwave.cpp:1135).
    If a Timer 0 elapse lands during the PAUSE/ACQUIRE window in setup or teardown, the re-arm is
    skipped, Timer 0 stays terminal, the line stays high, no fresh edge ever.
    *Log signature:* ISR entry shows T0 set but stream state ≠ RUN; no subsequent ISR entries.
 
-4. **FIFO not pre-filled before GO (datasheet ch07 line 910).** Pre-existing, not introduced by
+3. **FIFO not pre-filled before GO (datasheet ch07 line 910).** Pre-existing, not introduced by
    alpha.15, but worth checking if a startup glitch is heard. The tip says the FIFO should be
    filled above the threshold BEFORE GO is set; the driver sets GO and relies on auto-initialize
    DMA to fill the FIFO within microseconds.
    *Log signature:* a brief click or glitch at the very start of playback, then clean; or first
    buffer emits garbage. Distinct from the sustained prefill loop.
 
-5. **Four-op silence transient click (MIDI).** `Opl3_SilenceSlot` writes key-off then two
+4. **Four-op silence transient click (MIDI).** `Opl3_SilenceSlot` writes key-off then two
    total-level-to-max writes (~70 µs of `SoundMidiSendFM` delays). The connection-select flip
    after that window may emit a brief burst at the stale level. The original thump may be traded
    for a click at note-on of a reused pair, not note-off.
    *Log signature:* artifact character changes; click correlates with note-on on a channel that
    was just released, not with note-off.
 
-6. **Four-op release-tail truncation (MIDI).** `FourOpSlotProtected` checks only the primary's
+5. **Four-op release-tail truncation (MIDI).** `FourOpSlotProtected` checks only the primary's
    `on` state — by design, a released pair is stealable. If the secondary has a long release
    tail (sustain pedal, slow decay), `Opl3_SplitPair` silences it, cutting the tail audibly.
    *Log signature:* sustained chord that exceeds 6 simultaneous 4-op voices develops clicks or
    cutoffs as voices are stolen.
 
-7. **Stereo SFC_0 changed `0xC5 → 0xC7` (FIFO IRQ masked).** Bit difference is surgical (0x02 =
+6. **Stereo SFC_0 changed `0xC5 → 0xC7` (FIFO IRQ masked).** Bit difference is surgical (0x02 =
    MSK), but if the reference's lower bits carried meaning beyond the IRQ mask, stereo breaks
    while mono works.
    *Log signature:* 8-bit mono PCM works (Timer 0 path); 16-bit stereo does not, or artifacts
    differently.
 
-8. **Timer reload byte order (LO before HI).** Undocumented in the datasheet. Alpha.15 writes LO
+7. **Timer reload byte order (LO before HI).** Undocumented in the datasheet. Alpha.15 writes LO
    then HI; if the hardware expects HI then LO or latches on a specific strobe, the reload
    doesn't take.
-   *Log signature:* same as #1 (timer never fires or fires at wrong cadence).
+   *Log signature:* Timer 0 never fires or fires at the wrong cadence (PCM loops continuously,
+   not once).
 
 **Distinguishing decision tree for the log session:**
-- Neither PCM nor MIDI works → #2 (the wire).
-- MIDI works, PCM loops its prefill exactly once → #1 (re-arm) or #3 (state gate); check ISR
-  entry count and stream state in the logs.
-- MIDI works, PCM loops continuously → the Timer 0 IRQ isn't firing at all; verify the reload
-  took (#8) or the timer flag semantics differ from the model.
-- PCM plays but glitches regularly → #4 (startup glitch) or a cadence issue.
-- PCM clean, MIDI thumps/clicks → #5 (silence transient) or #6 (tail truncation).
-- Mono works, stereo doesn't → #7.
+- Neither PCM nor MIDI works → #1 (the wire).
+- MIDI works, PCM loops its prefill exactly once → #2 (state gate); check the stream state in
+  the ISR log. (The former #1, re-arm-clears-flag, is refuted — do not pursue without new
+  evidence.)
+- MIDI works, PCM loops continuously → Timer 0 IRQ isn't firing at all; verify the reload took
+  (#7) or the physical line (#1).
+- PCM plays but glitches regularly → #3 (startup glitch) or a cadence issue.
+- PCM clean, MIDI thumps/clicks → #4 (silence transient) or #5 (tail truncation).
+- Mono works, stereo doesn't → #6.
 
-**Two cheapest pre-session checks** (no hardware required):
-- #1's datasheet gap: re-read SDK ch07 around line 750-796 and the OPL3 reset sequence (line
-  488-504) to see whether the MMA inherits an IRQ-RESET-style mechanism the driver doesn't issue.
-- #2's IRQ claim: confirm the INF's hardwired IRQ (call/0022) matches the card's physical strap
-  on the test machine before booking the session.
+**Cheapest pre-session check** (no hardware required):
+- Confirm the INF's hardwired IRQ (`call/0022`) matches the card's physical strap on the test
+  machine before booking the session. With the Timer 0 protocol path now confirmed by the
+  primary datasheet, the wire is the load-bearing unknown for a PCM-only failure.
 
 This entry does not change any code, decision, or task receipt; it records the pre-mortem for the
 next session. The clean-room wall from `call/0035` holds: this analysis was sourced from the SDK
