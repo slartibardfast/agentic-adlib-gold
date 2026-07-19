@@ -27,7 +27,7 @@ Use PCem as a validation oracle only, behind a clean-room wall.
 - **Oracle, not source.** PCem is run; the driver is exercised inside it and
   observed (does PCM play through, is MIDI clean). No PCem source enters the
   driver codebase or this host, not vendored, not paraphrased, not adapted. The
-  test harness drives PCem as a subprocess against an externally-supplied binary
+  test runner drives PCem as a subprocess against an externally-supplied binary
   and captured audio output, never linked and never copied into the tree.
 - **Spec authority stays the hardware.** The `.allium` and `.tla` specs derive
   from the Ad Lib Gold datasheet and SDK and from real-card observation, not
@@ -35,7 +35,7 @@ Use PCem as a validation oracle only, behind a clean-room wall.
   test oracle; they do not become the spec's source.
 - **Agent recusal.** The clean-room reader/writer separation applies to AI
   agents, not only to humans. An agent that has ingested PCem source is on the
-  reader side and may build and run the harness, author specs from the
+  reader side and may build and run the test runner, author specs from the
   datasheet, and work in the host; it may not author the driver's
   hardware-interface code, the ISR, the DMA setup, the register, FIFO, and
   timer programming. A hardware-interface edit is routed to a clean agent that
